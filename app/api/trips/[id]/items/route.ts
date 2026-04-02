@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { createTables } from '@/lib/schema'
 
-const uid = () => Math.random().toString(36).slice(2, 10)
-
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const { id } = await params
+    await createTables()
     const [itinerary, expenses, places, documents, proposals, journal, checklist] = await Promise.all([
-      db.execute({ sql: 'SELECT * FROM itinerary WHERE trip_id=? ORDER BY day, time', args: [params.id] }),
-      db.execute({ sql: 'SELECT * FROM expenses WHERE trip_id=?', args: [params.id] }),
-      db.execute({ sql: 'SELECT * FROM places WHERE trip_id=?', args: [params.id] }),
-      db.execute({ sql: 'SELECT * FROM documents WHERE trip_id=?', args: [params.id] }),
-      db.execute({ sql: 'SELECT * FROM proposals WHERE trip_id=?', args: [params.id] }),
-      db.execute({ sql: 'SELECT * FROM journal WHERE trip_id=? ORDER BY day', args: [params.id] }),
-      db.execute({ sql: 'SELECT * FROM checklist WHERE trip_id=?', args: [params.id] }),
+      db.execute({ sql: 'SELECT * FROM itinerary WHERE trip_id=? ORDER BY day, time', args: [id] }),
+      db.execute({ sql: 'SELECT * FROM expenses WHERE trip_id=?', args: [id] }),
+      db.execute({ sql: 'SELECT * FROM places WHERE trip_id=?', args: [id] }),
+      db.execute({ sql: 'SELECT * FROM documents WHERE trip_id=?', args: [id] }),
+      db.execute({ sql: 'SELECT * FROM proposals WHERE trip_id=?', args: [id] }),
+      db.execute({ sql: 'SELECT * FROM journal WHERE trip_id=? ORDER BY day', args: [id] }),
+      db.execute({ sql: 'SELECT * FROM checklist WHERE trip_id=?', args: [id] }),
     ])
     return NextResponse.json({
       itinerary: itinerary.rows,
