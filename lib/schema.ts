@@ -15,6 +15,27 @@ export async function createTables() {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS flights (
+      id TEXT PRIMARY KEY,
+      trip_id TEXT NOT NULL,
+      type TEXT DEFAULT 'ida',
+      airline TEXT,
+      flight_number TEXT,
+      origin_airport TEXT,
+      origin_city TEXT,
+      destination_airport TEXT,
+      destination_city TEXT,
+      departure_date TEXT,
+      departure_time TEXT,
+      arrival_date TEXT,
+      arrival_time TEXT,
+      has_layover INTEGER DEFAULT 0,
+      layover_airport TEXT,
+      layover_duration TEXT,
+      notes TEXT,
+      FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS itinerary (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
@@ -35,6 +56,8 @@ export async function createTables() {
       category TEXT DEFAULT 'otros',
       estimated REAL,
       real REAL,
+      persons INTEGER DEFAULT 1,
+      paid_by TEXT,
       FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
     );
 
