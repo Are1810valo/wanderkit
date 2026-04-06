@@ -36,7 +36,7 @@ function ToastContainer() {
 /* ── ANIMATED NUMBER ── */
 function AnimatedNumber({ value, duration = 800 }: { value: number; duration?: number }) {
   const [display, setDisplay] = useState(0)
-  const frameRef = useRef<number>()
+  const frameRef = useRef<number | undefined>(undefined)
   useEffect(() => {
     const start = performance.now()
     const animate = (now: number) => {
@@ -1175,7 +1175,7 @@ function TabSummary({ trip, items }: any) {
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-light)', marginBottom: 18 }}>Vuelos del viaje</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[flightIda, flightRegreso].filter(Boolean).map((f: any) => (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', background: 'var(--bg-cream)', borderRadius: 12, flexWrap: 'wrap', gap: 12 }}>
+              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'var(--bg-cream)', borderRadius: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: f.type === 'ida' ? 'rgba(74,127,165,0.1)' : 'rgba(74,124,89,0.1)', color: f.type === 'ida' ? '#4a7fa5' : '#4a7c59' }}>
                   {f.type === 'ida' ? '✈️ Ida' : '🔄 Regreso'}
                 </span>
