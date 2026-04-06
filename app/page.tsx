@@ -70,7 +70,7 @@ function SkeletonList() {
 
 /* ── MAIN APP ── */
 export default function Home() {
-  const { trips, loading, createTrip, updateTrip, deleteTrip } = useTrips()
+  const { trips, loading, createTrip, updateTrip, deleteTrip, deleteTrips } = useTrips()
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [showNewTrip, setShowNewTrip] = useState(false)
@@ -162,7 +162,7 @@ export default function Home() {
             <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: 24 }}>{[1,2,3].map(i => <SkeletonCard key={i} height={200} />)}</div>
           </div>
         ) : !selectedTripId ? (
-          <Dashboard trips={trips} onSelectTrip={handleSelectTrip} onNewTrip={() => setShowNewTrip(true)} />
+          <Dashboard trips={trips} onSelectTrip={handleSelectTrip} onNewTrip={() => setShowNewTrip(true)} onDeleteTrips={deleteTrips} />
         ) : selectedTrip ? (
           <TripDetail
             trip={selectedTrip} activeTab={activeTab} onTabChange={setActiveTab}
@@ -178,7 +178,8 @@ export default function Home() {
 }
 
 /* ── DASHBOARD ── */
-function Dashboard({ trips, onSelectTrip, onNewTrip }: any) {
+function Dashboard({ trips, onSelectTrip, onNewTrip, onDeleteTrips }: any) {
+  const [selected, setSelected] = useState<string[]>([])
   const ongoing = trips.filter((t: any) => t.status === 'en curso').length
   const upcoming = trips.filter((t: any) => t.status === 'planificado').length
   const finished = trips.filter((t: any) => t.status === 'finalizado').length
@@ -187,6 +188,20 @@ function Dashboard({ trips, onSelectTrip, onNewTrip }: any) {
     'en curso': { label: 'En Curso', bg: 'rgba(74,124,89,0.1)', color: '#4a7c59' },
     finalizado: { label: 'Finalizado', bg: 'rgba(138,138,170,0.1)', color: '#8a8aaa' },
   }
+
+  const toggleSelect = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const handleDeleteSelected = async () => {
+    const count = selected.length
+    if (!confirm(`¿Eliminar ${count} viaje${count > 1 ? 's' : ''}? Esta acción no se puede deshacer.`)) return
+    await onDeleteTrips(selected)
+    setSelected([])
+    toast(`${count} viaje${count > 1 ? 's' : ''} eliminado${count > 1 ? 's' : ''}`, 'info')
+  }
+
   return (
     <div className="responsive-padding" style={{ padding: '52px 56px 64px' }}>
       <div className="fade-up" style={{ marginBottom: 52, borderBottom: '1px solid var(--border)', paddingBottom: 40 }}>
@@ -207,21 +222,39 @@ function Dashboard({ trips, onSelectTrip, onNewTrip }: any) {
       </div>
       {trips.length > 0 && (
         <>
-          <div className="fade-up-3" style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 24 }}>
-            <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 32, fontWeight: 400, color: 'var(--navy)' }}>Mis viajes</div>
-            <div style={{ fontSize: 12, color: 'var(--text-light)' }}>{trips.length} viaje{trips.length !== 1 ? 's' : ''}</div>
+          <div className="fade-up-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+              <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 32, fontWeight: 400, color: 'var(--navy)' }}>Mis viajes</div>
+              <div style={{ fontSize: 12, color: 'var(--text-light)' }}>{trips.length} viaje{trips.length !== 1 ? 's' : ''}</div>
+            </div>
+            {selected.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, color: 'var(--text-mid)', fontWeight: 500 }}>{selected.length} seleccionado{selected.length > 1 ? 's' : ''}</span>
+                <button className="btn-press" onClick={() => setSelected([])} style={{ padding: '8px 14px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', color: 'var(--text-mid)' }}>Cancelar</button>
+                <button className="btn-press" onClick={handleDeleteSelected} style={{ padding: '8px 16px', background: '#c45c5c', color: 'white', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🗑 Eliminar {selected.length > 1 ? `${selected.length} viajes` : 'viaje'}
+                </button>
+              </div>
+            )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 22 }}>
             {trips.map((t: any, i: number) => {
               const sc = statusConfig[t.status] || statusConfig.planificado
               const color = tripColors[t.color_idx ?? i % tripColors.length]
+              const isSelected = selected.includes(t.id)
               return (
-                <div key={t.id} className={`card-hover fade-up-${Math.min(i + 3, 6)}`} onClick={() => onSelectTrip(t.id)} style={{ background: 'var(--bg-card)', borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
+                <div key={t.id} className={`card-hover fade-up-${Math.min(i + 3, 6)}`} onClick={() => !selected.length && onSelectTrip(t.id)}
+                  style={{ background: 'var(--bg-card)', borderRadius: 20, overflow: 'hidden', border: isSelected ? '2px solid #b87333' : '1px solid var(--border)', boxShadow: isSelected ? '0 0 0 3px rgba(184,115,51,0.15)' : 'var(--shadow-card)', position: 'relative', transition: 'all 0.15s', cursor: selected.length ? 'default' : 'pointer' }}>
+                  {/* Checkbox esquina */}
+                  <div onClick={(e) => toggleSelect(e, t.id)}
+                    style={{ position: 'absolute', top: 12, left: 12, width: 22, height: 22, borderRadius: 6, border: `2px solid ${isSelected ? '#b87333' : 'rgba(255,255,255,0.8)'}`, background: isSelected ? '#b87333' : 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', transition: 'all 0.15s' }}>
+                    {isSelected && <span style={{ color: 'white', fontSize: 13, fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                  </div>
                   <div style={{ height: 120, padding: '18px 22px', background: `linear-gradient(135deg, ${color}12, ${color}25)`, borderBottom: `3px solid ${color}`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 36, opacity: 0.4 }}>🌍</span>
                     <span style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.color }}>{sc.label}</span>
                   </div>
-                  <div style={{ padding: '20px 22px 22px' }}>
+                  <div style={{ padding: '20px 22px 22px' }} onClick={() => onSelectTrip(t.id)}>
                     <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 24, fontWeight: 400, color: 'var(--navy)', lineHeight: 1.2 }}>{t.name}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-mid)', marginTop: 5 }}>📍 {t.destination}</div>
                     <div style={{ display: 'flex', gap: 18, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-light)' }}>
