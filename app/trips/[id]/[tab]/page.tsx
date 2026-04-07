@@ -2,23 +2,24 @@
 
 import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { useParams } from 'next/navigation'
-import { useTripItems } from '@/lib/hooks/useTrips'
+import { useTripContext } from '@/lib/context/TripContext'
 import axios from 'axios'
 
-const fmt = (n: number, cur = 'USD') => !n && n !== 0 ? '—' : new Intl.NumberFormat('es-CL',{style:'currency',currency:cur,maximumFractionDigits:0}).format(n)
+const fmt = (n: number, cur = 'USD') =>
+  !n && n !== 0 ? '—' : new Intl.NumberFormat('es-CL',{style:'currency',currency:cur,maximumFractionDigits:0}).format(n)
 
 /* ── TOAST ── */
 type TT = 'success'|'error'|'info'
-let _tid = 0, _addToast: ((m:string,t:TT)=>void)|null = null
-const toast = (m: string, t: TT='success') => _addToast?.(m,t)
+let _tid = 0, _add: ((m:string,t:TT)=>void)|null = null
+const toast = (m:string, t:TT='success') => _add?.(m,t)
 
 function Toasts() {
-  const [list, setList] = useState<{id:number,msg:string,type:TT,out?:boolean}[]>([])
+  const [list,setList] = useState<{id:number,msg:string,type:TT,out?:boolean}[]>([])
   const add = useCallback((msg:string,type:TT)=>{
     const id=++_tid; setList(l=>[...l,{id,msg,type}])
-    setTimeout(()=>{setList(l=>l.map(x=>x.id===id?{...x,out:true}:x));setTimeout(()=>setList(l=>l.filter(x=>x.id!==id)),300)},3000)
+    setTimeout(()=>{ setList(l=>l.map(x=>x.id===id?{...x,out:true}:x)); setTimeout(()=>setList(l=>l.filter(x=>x.id!==id)),300) },3500)
   },[])
-  useEffect(()=>{_addToast=add;return()=>{_addToast=null}},[add])
+  useEffect(()=>{ _add=add; return()=>{ _add=null } },[add])
   return (
     <div className="toast-container">
       {list.map(t=><div key={t.id} className={`toast ${t.type}${t.out?' leaving':''}`}><span>{t.type==='success'?'✓':t.type==='error'?'✕':'ℹ'}</span>{t.msg}</div>)}
@@ -31,22 +32,59 @@ function AN({ value, dur=800 }: { value:number, dur?:number }) {
   const [d,setD] = useState(0); const fr = useRef<number|undefined>(undefined)
   useEffect(()=>{
     const s=performance.now()
-    const run=(n:number)=>{const p=Math.min((n-s)/dur,1);setD(Math.round(value*(1-Math.pow(1-p,3))));if(p<1)fr.current=requestAnimationFrame(run)}
-    fr.current=requestAnimationFrame(run); return()=>{if(fr.current)cancelAnimationFrame(fr.current)}
+    const run=(n:number)=>{ const p=Math.min((n-s)/dur,1); setD(Math.round(value*(1-Math.pow(1-p,3)))); if(p<1)fr.current=requestAnimationFrame(run) }
+    fr.current=requestAnimationFrame(run); return()=>{ if(fr.current)cancelAnimationFrame(fr.current) }
   },[value,dur])
   return <>{d}</>
 }
 
-/* ── SHARED UI ── */
-const Modal = memo(({ title, onClose, children }: any) => (
-  <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',backdropFilter:'blur(12px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}} onClick={onClose}>
-    <div style={{background:'var(--bg)',borderRadius:20,padding:'32px 36px',width:'100%',maxWidth:560,maxHeight:'90vh',overflowY:'auto',border:'1px solid var(--border)'}} onClick={e=>e.stopPropagation()}>
-      <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)',marginBottom:22}}>{title}</div>
-      {children}
+/* ── LAZY MAP — solo carga el iframe cuando entra en viewport ── */
+function LazyMap({ lat, lng, active, onActivate }: { lat:number, lng:number, active:boolean, onActivate:()=>void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(()=>{
+    const obs = new IntersectionObserver(entries=>{
+      if(entries[0].isIntersecting) { setVisible(true); obs.disconnect() }
+    },{ threshold:0.1 })
+    if(ref.current) obs.observe(ref.current)
+    return()=>obs.disconnect()
+  },[])
+
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.01},${lat-0.01},${lng+0.01},${lat+0.01}&layer=mapnik&marker=${lat},${lng}`
+
+  return (
+    <div ref={ref} style={{position:'relative',height:130,overflow:'hidden',cursor:'pointer'}} onClick={onActivate}>
+      {visible ? (
+        <iframe src={src} style={{width:'100%',height:'100%',border:'none',pointerEvents:active?'auto':'none'}} loading="lazy" />
+      ) : (
+        <div style={{width:'100%',height:'100%',background:'var(--bg-cream-dark)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div className="skeleton" style={{position:'absolute',inset:0,borderRadius:0}} />
+        </div>
+      )}
+      {!active&&visible&&(
+        <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.12)'}}>
+          <span style={{background:'white',borderRadius:20,padding:'5px 12px',fontSize:12,fontWeight:600,color:'#1a2744'}}>🗺️ Ver mapa</span>
+        </div>
+      )}
     </div>
-  </div>
-))
-Modal.displayName = 'Modal'
+  )
+}
+
+/* ── SHARED UI ── */
+const Modal = memo(({ title, onClose, children }: any) => {
+  useEffect(()=>{ document.body.style.overflow='hidden'; return()=>{ document.body.style.overflow='' } },[])
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',backdropFilter:'blur(12px)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:2000,padding:'20px',overflowY:'auto'}} onClick={onClose}>
+      <div style={{background:'var(--bg)',borderRadius:20,padding:'32px 36px',width:'100%',maxWidth:580,marginTop:'auto',marginBottom:'auto',border:'1px solid var(--border)',position:'relative'}} onClick={e=>e.stopPropagation()}>
+        <button onClick={onClose} style={{position:'absolute',top:16,right:16,width:28,height:28,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--bg-cream)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'var(--text-light)'}}>✕</button>
+        <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)',marginBottom:22,paddingRight:32}}>{title}</div>
+        {children}
+      </div>
+    </div>
+  )
+})
+Modal.displayName='Modal'
 
 const FG = memo(({ label, children }: any) => (
   <div style={{marginBottom:14}}>
@@ -54,11 +92,11 @@ const FG = memo(({ label, children }: any) => (
     {children}
   </div>
 ))
-FG.displayName = 'FG'
+FG.displayName='FG'
 
-const Btn = ({ onClick, primary, children, style={} }: any) => (
-  <button onClick={onClick} style={{padding:primary?'10px 20px':'10px 16px',background:primary?'#b87333':'transparent',color:primary?'white':'var(--text-mid)',border:primary?'none':'1px solid var(--border)',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',boxShadow:primary?'0 4px 16px rgba(184,115,51,0.28)':'none',transition:'all 0.15s',display:'inline-flex',alignItems:'center',gap:6,...style}}>
-    {children}
+const Btn = ({ onClick, primary, disabled, loading, children, style={} }: any) => (
+  <button onClick={onClick} disabled={disabled||loading} style={{padding:primary?'10px 20px':'10px 16px',background:primary?(disabled||loading?'rgba(184,115,51,0.5)':'#b87333'):'transparent',color:primary?'white':'var(--text-mid)',border:primary?'none':'1px solid var(--border)',borderRadius:10,fontSize:13,fontWeight:600,cursor:(disabled||loading)?'not-allowed':'pointer',fontFamily:'DM Sans,sans-serif',boxShadow:primary&&!disabled?'0 4px 16px rgba(184,115,51,0.28)':'none',transition:'all 0.15s',display:'inline-flex',alignItems:'center',gap:6,opacity:(disabled&&!loading)?0.6:1,...style}}>
+    {loading?'⏳ Guardando...':children}
   </button>
 )
 
@@ -76,23 +114,31 @@ const Empty = ({ icon, title, sub }: any) => (
   </div>
 )
 
+const ErrMsg = ({ msg }: { msg:string }) => !msg ? null : (
+  <div style={{padding:'10px 14px',background:'rgba(196,92,92,0.08)',border:'1px solid rgba(196,92,92,0.2)',borderRadius:10,fontSize:13,color:'#c45c5c',marginBottom:14}}>{msg}</div>
+)
+
 const Skel = ({ h=80 }: { h?:number }) => <div className="skeleton" style={{height:h,borderRadius:14,marginBottom:10}} />
 
 /* ── MAIN PAGE ── */
 export default function TabPage() {
-  const params = useParams()
-  const tripId = params.id as string
-  const tab = params.tab as string
+  const params  = useParams()
+  const tripId  = params.id as string
+  const tab     = params.tab as string
   const [trip, setTrip] = useState<any>(null)
-  const { items, loading, addItem, updateItem, deleteItem } = useTripItems(tripId)
 
-  useEffect(() => {
-    axios.get('/api/trips').then(r=>setTrip(r.data.find((t:any)=>t.id===tripId)||null))
-  }, [tripId])
+  // Usar Context en vez de useTripItems — datos compartidos entre tabs, sin refetch al navegar
+  const { items, loading, addItem, updateItem, deleteItem } = useTripContext()
 
-  const add = useCallback((type:string,data:any)=>addItem(type,data).then(()=>toast('Agregado')), [addItem])
-  const upd = useCallback((type:string,data:any)=>updateItem(type,data).then(()=>toast('Guardado')), [updateItem])
-  const del = useCallback((type:string,id:string)=>deleteItem(type,id).then(()=>toast('Eliminado','info')), [deleteItem])
+  useEffect(()=>{
+    axios.get('/api/trips')
+      .then(r=>setTrip(r.data.find((t:any)=>t.id===tripId)||null))
+      .catch(()=>toast('Error cargando datos del viaje','error'))
+  },[tripId])
+
+  const add = useCallback(async(type:string,data:any)=>{ await addItem(type,data); toast('Agregado correctamente') },[addItem])
+  const upd = useCallback(async(type:string,data:any)=>{ await updateItem(type,data); toast('Guardado') },[updateItem])
+  const del = useCallback(async(type:string,id:string)=>{ await deleteItem(type,id); toast('Eliminado','info') },[deleteItem])
 
   return (
     <div className="tab-content-responsive fade-in" style={{padding:'32px 44px 64px'}}>
@@ -101,16 +147,16 @@ export default function TabPage() {
         <>{[1,2,3,4].map(i=><Skel key={i} h={i===1?180:90} />)}</>
       ) : (
         <>
-          {tab==='overview'   && <TabOverview   trip={trip} items={items} />}
-          {tab==='flights'    && <TabFlights    trip={trip} items={items} add={add} upd={upd} del={del} />}
-          {tab==='itinerary'  && <TabItinerary  trip={trip} items={items} add={add} upd={upd} del={del} />}
-          {tab==='expenses'   && <TabExpenses   trip={trip} items={items} add={add} upd={upd} del={del} />}
-          {tab==='places'     && <TabPlaces     trip={trip} items={items} add={add} upd={upd} del={del} />}
-          {tab==='documents'  && <TabDocuments  trip={trip} items={items} add={add} upd={upd} del={del} />}
-          {tab==='checklist'  && <TabChecklist  trip={trip} items={items} add={add} upd={upd} del={del} />}
-          {tab==='proposals'  && <TabProposals  trip={trip} items={items} add={add} upd={upd} del={del} />}
-          {tab==='journal'    && <TabJournal    trip={trip} items={items} add={add} upd={upd} del={del} />}
-          {tab==='summary'    && <TabSummary    trip={trip} items={items} />}
+          {tab==='overview'  && <TabOverview   trip={trip} items={items} />}
+          {tab==='flights'   && <TabFlights    trip={trip} items={items} add={add} upd={upd} del={del} />}
+          {tab==='itinerary' && <TabItinerary  trip={trip} items={items} add={add} upd={upd} del={del} />}
+          {tab==='expenses'  && <TabExpenses   trip={trip} items={items} add={add} upd={upd} del={del} />}
+          {tab==='places'    && <TabPlaces     trip={trip} items={items} add={add} upd={upd} del={del} />}
+          {tab==='documents' && <TabDocuments  trip={trip} items={items} add={add} upd={upd} del={del} />}
+          {tab==='checklist' && <TabChecklist  trip={trip} items={items} add={add} upd={upd} del={del} />}
+          {tab==='proposals' && <TabProposals  trip={trip} items={items} add={add} upd={upd} del={del} />}
+          {tab==='journal'   && <TabJournal    trip={trip} items={items} add={add} upd={upd} del={del} />}
+          {tab==='summary'   && <TabSummary    trip={trip} items={items} />}
         </>
       )}
     </div>
@@ -119,17 +165,17 @@ export default function TabPage() {
 
 /* ── OVERVIEW ── */
 function TabOverview({ trip, items }: any) {
-  const est = items?.expenses?.reduce((s:number,e:any)=>s+(e.estimated||0),0)||0
+  const est  = items?.expenses?.reduce((s:number,e:any)=>s+(e.estimated||0),0)||0
   const real = items?.expenses?.reduce((s:number,e:any)=>s+(e.real||0),0)||0
   const budget = trip?.budget||est||1
-  const pct = Math.min(120,Math.round(real/budget*100))
+  const pct  = Math.min(120,Math.round(real/budget*100))
   const diff = real-est
   const done = items?.itinerary?.filter((a:any)=>a.status==='realizado').length||0
   const acts = items?.itinerary?.length||0
-  const vis = items?.places?.filter((p:any)=>p.visited).length||0
-  const ck = items?.checklist?.filter((i:any)=>i.checked).length||0
-  const ckT = items?.checklist?.length||0
-  const fl = items?.flights?.length||0
+  const vis  = items?.places?.filter((p:any)=>p.visited).length||0
+  const ck   = items?.checklist?.filter((i:any)=>i.checked).length||0
+  const ckT  = items?.checklist?.length||0
+  const fl   = items?.flights?.length||0
 
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18}}>
@@ -154,7 +200,7 @@ function TabOverview({ trip, items }: any) {
             </div>
             <div style={{display:'flex',justifyContent:'space-between',marginTop:6,fontSize:11,color:'var(--text-light)'}}>
               <span><AN value={pct} />% del presupuesto</span>
-              <span style={{fontWeight:600,color:diff>0?'#c45c5c':'#4a7c59'}}>{diff>0?`+${fmt(diff)} sobre estimado`:diff<0?`${fmt(Math.abs(diff))} ahorrado`:'Exacto'}</span>
+              <span style={{fontWeight:600,color:diff>0?'#c45c5c':'#4a7c59'}}>{diff>0?`+${fmt(diff)} sobre estimado`:diff<0?`${fmt(Math.abs(diff))} ahorrado`:'Exacto al estimado'}</span>
             </div>
           </>
         )}
@@ -184,8 +230,8 @@ function TabOverview({ trip, items }: any) {
 
 /* ── FLIGHTS ── */
 function TabFlights({ trip, items, add, upd, del }: any) {
-  const [showModal, setShowModal] = useState(false)
-  const [editing, setEditing] = useState<any>(null)
+  const [modal,setModal] = useState(false)
+  const [editing,setEditing] = useState<any>(null)
   const flights = items?.flights||[]
   const ida = flights.filter((f:any)=>f.type==='ida')
   const reg = flights.filter((f:any)=>f.type==='regreso')
@@ -193,57 +239,48 @@ function TabFlights({ trip, items, add, upd, del }: any) {
   const FlightCard = ({ f }: { f:any }) => (
     <div style={{background:'var(--bg-card)',borderRadius:16,border:'1px solid var(--border)',padding:'20px 24px',marginBottom:12,boxShadow:'var(--shadow-card)'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
           <span style={{padding:'5px 12px',borderRadius:20,fontSize:11,fontWeight:700,background:f.type==='ida'?'rgba(74,127,165,0.1)':'rgba(74,124,89,0.1)',color:f.type==='ida'?'#4a7fa5':'#4a7c59'}}>
             {f.type==='ida'?'✈️ Ida':'🔄 Regreso'}
           </span>
           {f.airline&&<span style={{fontSize:13,color:'var(--text-mid)',fontWeight:500}}>{f.airline} {f.flight_number}</span>}
-          {f.price&&<span style={{fontSize:13,fontWeight:600,color:'var(--navy)',fontFamily:'Cormorant Garamond,serif'}}>{fmt(f.price,trip?.currency)}{f.persons>1&&<span style={{fontSize:11,color:'var(--text-light)',fontFamily:'DM Sans,sans-serif'}}> · {fmt(f.price/f.persons,trip?.currency)}/persona</span>}</span>}
+          {f.price&&<span style={{fontSize:14,fontWeight:600,color:'var(--navy)',fontFamily:'Cormorant Garamond,serif'}}>{fmt(f.price,trip?.currency)}{f.persons>1&&<span style={{fontSize:11,color:'var(--text-light)',fontFamily:'DM Sans,sans-serif'}}> · {fmt(f.price/f.persons,trip?.currency)}/p</span>}</span>}
         </div>
         <div style={{display:'flex',gap:6}}>
-          <IBtn onClick={()=>{setEditing(f);setShowModal(true)}}>✏️</IBtn>
+          <IBtn onClick={()=>{setEditing(f);setModal(true)}}>✏️</IBtn>
           <IBtn onClick={()=>del('flights',f.id)} color="#c45c5c">🗑</IBtn>
         </div>
       </div>
-
-      {/* Tramo 1: Origen → Escala o Destino */}
-      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:f.has_layover?16:0}}>
-        <div style={{flex:1}}>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:f.has_layover?16:0,flexWrap:'wrap'}}>
+        <div style={{flex:1,minWidth:100}}>
           <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)'}}>{f.origin_airport||'—'}</div>
           <div style={{fontSize:12,color:'var(--text-mid)',marginTop:2}}>{f.origin_city}</div>
-          <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginTop:5}}>{f.departure_date} · {f.departure_time}</div>
+          <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginTop:4}}>{f.departure_date} · {f.departure_time}</div>
         </div>
-        <div style={{textAlign:'center',flex:0.6}}>
+        <div style={{textAlign:'center',flex:'0 0 60px'}}>
           <div style={{fontSize:18}}>{f.has_layover?'🛫':'✈️'}</div>
           <div style={{height:1,background:'var(--border)',margin:'6px 0'}} />
-          <div style={{fontSize:10,color:'var(--text-light)'}}>
-            {f.has_layover?`vía ${f.layover_airport||'escala'}`:'directo'}
-          </div>
+          <div style={{fontSize:10,color:'var(--text-light)'}}>{f.has_layover?`via ${f.layover_airport||'escala'}`:'directo'}</div>
         </div>
-        <div style={{flex:1,textAlign:'right'}}>
+        <div style={{flex:1,textAlign:'right',minWidth:100}}>
           <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)'}}>{f.has_layover?(f.layover_airport||'—'):f.destination_airport||'—'}</div>
           <div style={{fontSize:12,color:'var(--text-mid)',marginTop:2}}>{f.has_layover?(f.layover_city||'Escala'):f.destination_city}</div>
-          <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginTop:5}}>{f.has_layover?f.layover_arrival_time:f.arrival_date} · {!f.has_layover&&f.arrival_time}</div>
+          <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginTop:4}}>{f.has_layover?f.layover_arrival_time:(f.arrival_date+' · '+f.arrival_time)}</div>
         </div>
       </div>
-
-      {/* Tramo 2 (si hay escala): Escala → Destino final */}
       {f.has_layover===1&&(
         <>
           <div style={{padding:'10px 14px',background:'rgba(184,115,51,0.06)',border:'1px solid rgba(184,115,51,0.15)',borderRadius:10,fontSize:12,color:'var(--text-mid)',marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
-            🕐 <span>Espera en {f.layover_airport||'escala'}{f.layover_duration?` · ${f.layover_duration}`:''} · Sale: {f.layover_departure_time}</span>
+            🕐 Escala en {f.layover_airport||'—'}{f.layover_duration?` · ${f.layover_duration}`:''}{f.layover_departure_time?` · Sale: ${f.layover_departure_time}`:''}
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <div style={{flex:1}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+            <div style={{flex:1,minWidth:100}}>
               <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:22,fontWeight:300,color:'var(--navy)'}}>{f.layover_airport||'—'}</div>
               <div style={{fontSize:12,color:'var(--text-mid)',marginTop:2}}>{f.layover_city}</div>
               <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginTop:4}}>{f.layover_departure_time}</div>
             </div>
-            <div style={{textAlign:'center',flex:0.6}}>
-              <div style={{fontSize:16}}>✈️</div>
-              <div style={{height:1,background:'var(--border)',margin:'6px 0'}} />
-            </div>
-            <div style={{flex:1,textAlign:'right'}}>
+            <div style={{textAlign:'center',flex:'0 0 60px'}}><div style={{fontSize:16}}>✈️</div><div style={{height:1,background:'var(--border)',margin:'6px 0'}} /></div>
+            <div style={{flex:1,textAlign:'right',minWidth:100}}>
               <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:22,fontWeight:300,color:'var(--navy)'}}>{f.destination_airport||'—'}</div>
               <div style={{fontSize:12,color:'var(--text-mid)',marginTop:2}}>{f.destination_city}</div>
               <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginTop:4}}>{f.arrival_date} · {f.arrival_time}</div>
@@ -259,16 +296,16 @@ function TabFlights({ trip, items, add, upd, del }: any) {
     <div className="fade-in">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
         <div style={{fontSize:13,color:'var(--text-mid)'}}>{flights.length} vuelo{flights.length!==1?'s':''} registrado{flights.length!==1?'s':''}</div>
-        <Btn onClick={()=>{setEditing(null);setShowModal(true)}} primary>＋ Agregar vuelo</Btn>
+        <Btn onClick={()=>{setEditing(null);setModal(true)}} primary>＋ Agregar vuelo</Btn>
       </div>
       {flights.length===0&&<Empty icon="✈️" title="Sin vuelos registrados" sub="Agrega los detalles de tu vuelo de ida y regreso" />}
       {ida.length>0&&(<div style={{marginBottom:28}}><div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:12}}>Vuelo de ida</div>{ida.map((f:any)=><FlightCard key={f.id} f={f} />)}</div>)}
       {reg.length>0&&(<div><div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:12}}>Vuelo de regreso</div>{reg.map((f:any)=><FlightCard key={f.id} f={f} />)}</div>)}
-      {showModal&&(
-        <Modal title={editing?'Editar vuelo':'Nuevo vuelo'} onClose={()=>{setShowModal(false);setEditing(null)}}>
+      {modal&&(
+        <Modal title={editing?'Editar vuelo':'Nuevo vuelo'} onClose={()=>{setModal(false);setEditing(null)}}>
           <FlightForm flight={editing} currency={trip?.currency} onSave={async(data:any)=>{
             editing?await upd('flights',{...editing,...data}):await add('flights',data)
-            setShowModal(false);setEditing(null)
+            setModal(false);setEditing(null)
           }} />
         </Modal>
       )}
@@ -290,20 +327,28 @@ function FlightForm({ flight, currency, onSave }: any) {
     layoverDuration:flight?.layover_duration||'',
     price:flight?.price||'', persons:flight?.persons||1, notes:flight?.notes||'',
   })
-  const s = (k:string,v:any) => setF(p=>({...p,[k]:v}))
-  const hk = (e:React.KeyboardEvent) => { if(e.key==='Enter') e.preventDefault() }
+  const [saving,setSaving] = useState(false)
+  const [error,setError] = useState('')
+  const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
+  const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
+
+  const handleSave = async() => {
+    if(!f.originAirport&&!f.originCity){setError('Ingresa al menos el aeropuerto o ciudad de origen');return}
+    setSaving(true);setError('')
+    try{await onSave(f)}catch(e){setError('Error al guardar. Intenta nuevamente.');setSaving(false)}
+  }
 
   return (
     <div>
+      <ErrMsg msg={error} />
       <FG label="Tipo de vuelo">
         <select className="form-input" value={f.type} onChange={e=>s('type',e.target.value)}>
           <option value="ida">✈️ Vuelo de ida</option>
           <option value="regreso">🔄 Vuelo de regreso</option>
         </select>
       </FG>
-
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-        <FG label="Aerolínea"><input className="form-input" value={f.airline} onChange={e=>s('airline',e.target.value)} onKeyDown={hk} placeholder="Ej: LATAM" /></FG>
+        <FG label="Aerolínea"><input className="form-input" value={f.airline} onChange={e=>s('airline',e.target.value)} onKeyDown={hk} placeholder="LATAM, American..." /></FG>
         <FG label="N° vuelo"><input className="form-input" value={f.flightNumber} onChange={e=>s('flightNumber',e.target.value)} onKeyDown={hk} placeholder="LA800" /></FG>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
@@ -319,7 +364,6 @@ function FlightForm({ flight, currency, onSave }: any) {
           💡 Por persona: <strong style={{color:'var(--navy)'}}>{fmt(parseFloat(String(f.price))/f.persons,currency)}</strong>
         </div>
       )}
-
       <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--text-light)',margin:'16px 0 10px',paddingBottom:6,borderBottom:'1px solid var(--border)'}}>🛫 Origen</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
         <FG label="Código aeropuerto"><input className="form-input" value={f.originAirport} onChange={e=>s('originAirport',e.target.value.toUpperCase())} onKeyDown={hk} placeholder="SCL" maxLength={4} /></FG>
@@ -329,8 +373,6 @@ function FlightForm({ flight, currency, onSave }: any) {
         <FG label="Fecha salida"><input className="form-input" type="date" value={f.departureDate} onChange={e=>s('departureDate',e.target.value)} /></FG>
         <FG label="Hora salida"><input className="form-input" type="time" value={f.departureTime} onChange={e=>s('departureTime',e.target.value)} /></FG>
       </div>
-
-      {/* Escala */}
       <div style={{margin:'16px 0',padding:'14px 16px',background:'var(--bg-cream)',borderRadius:12,border:'1px solid var(--border)'}}>
         <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',marginBottom:f.hasLayover?14:0}}>
           <input type="checkbox" checked={f.hasLayover} onChange={e=>s('hasLayover',e.target.checked)} style={{width:16,height:16}} />
@@ -345,12 +387,11 @@ function FlightForm({ flight, currency, onSave }: any) {
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
               <FG label="Llegada a escala"><input className="form-input" type="time" value={f.layoverArrivalTime} onChange={e=>s('layoverArrivalTime',e.target.value)} /></FG>
               <FG label="Salida de escala"><input className="form-input" type="time" value={f.layoverDepartureTime} onChange={e=>s('layoverDepartureTime',e.target.value)} /></FG>
-              <FG label="Duración espera"><input className="form-input" value={f.layoverDuration} onChange={e=>s('layoverDuration',e.target.value)} onKeyDown={hk} placeholder="2h 30min" /></FG>
+              <FG label="Tiempo espera"><input className="form-input" value={f.layoverDuration} onChange={e=>s('layoverDuration',e.target.value)} onKeyDown={hk} placeholder="2h 30min" /></FG>
             </div>
           </>
         )}
       </div>
-
       <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--text-light)',margin:'0 0 10px',paddingBottom:6,borderBottom:'1px solid var(--border)'}}>🛬 Destino final</div>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
         <FG label="Código aeropuerto"><input className="form-input" value={f.destinationAirport} onChange={e=>s('destinationAirport',e.target.value.toUpperCase())} onKeyDown={hk} placeholder="GIG" maxLength={4} /></FG>
@@ -360,10 +401,9 @@ function FlightForm({ flight, currency, onSave }: any) {
         <FG label="Fecha llegada"><input className="form-input" type="date" value={f.arrivalDate} onChange={e=>s('arrivalDate',e.target.value)} /></FG>
         <FG label="Hora llegada"><input className="form-input" type="time" value={f.arrivalTime} onChange={e=>s('arrivalTime',e.target.value)} /></FG>
       </div>
-
       <FG label="Notas (reserva, asiento, equipaje...)"><textarea className="form-input" rows={2} value={f.notes} onChange={e=>s('notes',e.target.value)} /></FG>
       <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}>
-        <Btn onClick={()=>onSave(f)} primary>{flight?'Guardar cambios':'Agregar vuelo'}</Btn>
+        <Btn onClick={handleSave} primary loading={saving}>{flight?'Guardar cambios':'Agregar vuelo'}</Btn>
       </div>
     </div>
   )
@@ -383,7 +423,7 @@ function TabItinerary({ trip, items, add, upd, del }: any) {
         <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
           {[{c:itin.filter((a:any)=>a.status==='realizado').length,l:'realizadas',col:'#4a7c59'},
             {c:itin.filter((a:any)=>a.status==='pendiente').length,l:'pendientes',col:'#b87333'},
-            {c:itin.filter((a:any)=>a.status==='cancelado').length,l:'canceladas',col:'#c45c5c'}
+            {c:itin.filter((a:any)=>a.status==='cancelado').length,l:'canceladas',col:'#c45c5c'},
           ].map((s,i)=>(
             <div key={i} style={{display:'flex',alignItems:'baseline',gap:5}}>
               <span style={{fontFamily:'Cormorant Garamond,serif',fontSize:30,fontWeight:300,color:s.col}}>{s.c}</span>
@@ -394,7 +434,7 @@ function TabItinerary({ trip, items, add, upd, del }: any) {
         <Btn onClick={()=>{setEditing(null);setModal(true)}} primary>＋ Actividad</Btn>
       </div>
       {days.map(day=>{
-        const acts = itin.filter((a:any)=>a.day===day).sort((a:any,b:any)=>(a.time||'').localeCompare(b.time||''))
+        const acts=itin.filter((a:any)=>a.day===day).sort((a:any,b:any)=>(a.time||'').localeCompare(b.time||''))
         return (
           <div key={day} style={{marginBottom:36}}>
             <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14,paddingBottom:10,borderBottom:'1px solid var(--border)'}}>
@@ -410,7 +450,7 @@ function TabItinerary({ trip, items, add, upd, del }: any) {
                   <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{a.name}</div>
                   <div style={{display:'flex',gap:10,marginTop:3,fontSize:12,color:'var(--text-light)',flexWrap:'wrap'}}>
                     {a.time&&<span>🕐 {a.time}</span>}
-                    {a.time_real&&<span style={{color:'#4a7c59',fontWeight:500}}>✅ Real: {a.time_real}</span>}
+                    {a.time_real&&<span style={{color:'#4a7c59',fontWeight:500}}>✅ {a.time_real}</span>}
                     <span style={{background:'var(--bg-cream-dark)',padding:'1px 7px',borderRadius:5,fontSize:10,fontWeight:600,textTransform:'uppercase'}}>{a.type}</span>
                   </div>
                   {a.note&&<div style={{marginTop:7,padding:'7px 10px',background:'var(--bg-cream)',borderRadius:8,borderLeft:'3px solid var(--border)',fontSize:13,color:'var(--text-mid)',fontStyle:'italic'}}>"{a.note}"</div>}
@@ -441,10 +481,18 @@ function TabItinerary({ trip, items, add, upd, del }: any) {
 
 function ActivityForm({ act, onSave }: any) {
   const [f,setF] = useState({name:act?.name||'',day:act?.day||1,time:act?.time||'',time_real:act?.time_real||'',type:act?.type||'actividades',status:act?.status||'pendiente',note:act?.note||''})
+  const [saving,setSaving] = useState(false)
+  const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
   const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
+  const handleSave=async()=>{
+    if(!f.name.trim()){setError('El nombre es requerido');return}
+    setSaving(true);setError('')
+    try{await onSave(f)}catch(e){setError('Error al guardar. Intenta nuevamente.');setSaving(false)}
+  }
   return (
     <div>
+      <ErrMsg msg={error} />
       <FG label="Nombre"><input className="form-input" value={f.name} onChange={e=>s('name',e.target.value)} onKeyDown={hk} autoFocus /></FG>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
         <FG label="Día"><input className="form-input" type="number" min="1" value={f.day} onChange={e=>s('day',parseInt(e.target.value)||1)} onKeyDown={hk} /></FG>
@@ -466,8 +514,8 @@ function ActivityForm({ act, onSave }: any) {
         </select>
       </FG>
       <FG label="Notas"><textarea className="form-input" rows={3} value={f.note} onChange={e=>s('note',e.target.value)} /></FG>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
-        <Btn onClick={()=>f.name&&onSave(f)} primary>{act?'Guardar cambios':'Agregar'}</Btn>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}>
+        <Btn onClick={handleSave} primary loading={saving}>{act?'Guardar cambios':'Agregar'}</Btn>
       </div>
     </div>
   )
@@ -479,9 +527,9 @@ function TabExpenses({ trip, items, add, upd, del }: any) {
   const [editing,setEditing] = useState<any>(null)
   const exp = items?.expenses||[]
   const CE: Record<string,string> = {alojamiento:'🏨',transporte:'✈️',comida:'🍽️',actividades:'🎭',compras:'🛍️',otros:'📌'}
-  const est = exp.reduce((s:number,e:any)=>s+(e.estimated||0),0)
-  const real = exp.reduce((s:number,e:any)=>s+(e.real||0),0)
-  const diff = real-est
+  const est=exp.reduce((s:number,e:any)=>s+(e.estimated||0),0)
+  const real=exp.reduce((s:number,e:any)=>s+(e.real||0),0)
+  const diff=real-est
 
   return (
     <div className="fade-in">
@@ -507,7 +555,7 @@ function TabExpenses({ trip, items, add, upd, del }: any) {
               <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{e.name}</div>
               <div style={{fontSize:11,color:'var(--text-light)',marginTop:2,textTransform:'capitalize'}}>{e.category}</div>
               <div style={{display:'flex',gap:10,marginTop:3,flexWrap:'wrap'}}>
-                {e.persons>1&&<span style={{fontSize:11,color:'var(--text-mid)'}}>👥 {e.persons} personas · {fmt((e.real||0)/e.persons,trip?.currency)}/c/u</span>}
+                {e.persons>1&&<span style={{fontSize:11,color:'var(--text-mid)'}}>👥 {e.persons}p · {fmt((e.real||0)/e.persons,trip?.currency)}/c/u</span>}
                 {e.paid_by&&<span style={{fontSize:11,color:'var(--text-mid)'}}>💳 {e.paid_by}</span>}
               </div>
             </div>
@@ -543,10 +591,19 @@ function TabExpenses({ trip, items, add, upd, del }: any) {
 
 function ExpenseForm({ exp, currency, onSave }: any) {
   const [f,setF] = useState({name:exp?.name||'',category:exp?.category||'otros',estimated:exp?.estimated??'',real:exp?.real??'',persons:exp?.persons||1,paidBy:exp?.paid_by||''})
+  const [saving,setSaving] = useState(false)
+  const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
   const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
+  const handleSave=async()=>{
+    if(!f.name.trim()){setError('La descripción es requerida');return}
+    setSaving(true);setError('')
+    try{await onSave({...f,estimated:f.estimated!==''?parseFloat(f.estimated as string):null,real:f.real!==''?parseFloat(f.real as string):null})}
+    catch(e){setError('Error al guardar. Intenta nuevamente.');setSaving(false)}
+  }
   return (
     <div>
+      <ErrMsg msg={error} />
       <FG label="Descripción"><input className="form-input" value={f.name} onChange={e=>s('name',e.target.value)} onKeyDown={hk} autoFocus /></FG>
       <FG label="Categoría">
         <select className="form-input" value={f.category} onChange={e=>s('category',e.target.value)}>
@@ -570,14 +627,14 @@ function ExpenseForm({ exp, currency, onSave }: any) {
           💡 Por persona: <strong style={{color:'var(--navy)'}}>{fmt(parseFloat(f.real as string)/f.persons,currency)}</strong>
         </div>
       )}
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
-        <Btn onClick={()=>f.name&&onSave({...f,estimated:f.estimated!==''?parseFloat(f.estimated as string):null,real:f.real!==''?parseFloat(f.real as string):null})} primary>{exp?'Guardar':'Agregar'}</Btn>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}>
+        <Btn onClick={handleSave} primary loading={saving}>{exp?'Guardar':'Agregar'}</Btn>
       </div>
     </div>
   )
 }
 
-/* ── PLACES ── */
+/* ── PLACES — con LazyMap ── */
 function TabPlaces({ trip, items, add, upd, del }: any) {
   const [modal,setModal] = useState(false)
   const [editing,setEditing] = useState<any>(null)
@@ -598,10 +655,11 @@ function TabPlaces({ trip, items, add, upd, del }: any) {
         {places.map((p:any)=>(
           <div key={p.id} style={{background:'var(--bg-card)',borderRadius:16,border:'1px solid var(--border)',overflow:'hidden',boxShadow:'var(--shadow-card)',borderTop:`4px solid ${p.visited?'#4a7c59':'var(--border)'}`}}>
             {p.lat&&p.lng&&(
-              <div style={{position:'relative',height:130,overflow:'hidden',cursor:'pointer'}} onClick={()=>setActiveMap(activeMap===p.id?null:p.id)}>
-                <iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${p.lng-0.01},${p.lat-0.01},${p.lng+0.01},${p.lat+0.01}&layer=mapnik&marker=${p.lat},${p.lng}`} style={{width:'100%',height:'100%',border:'none',pointerEvents:activeMap===p.id?'auto':'none'}} loading="lazy" />
-                {activeMap!==p.id&&<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.12)'}}><span style={{background:'white',borderRadius:20,padding:'5px 12px',fontSize:12,fontWeight:600,color:'#1a2744'}}>🗺️ Ver mapa</span></div>}
-              </div>
+              <LazyMap
+                lat={p.lat} lng={p.lng}
+                active={activeMap===p.id}
+                onActivate={()=>setActiveMap(activeMap===p.id?null:p.id)}
+              />
             )}
             <div style={{padding:'14px 16px'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
@@ -642,26 +700,35 @@ function TabPlaces({ trip, items, add, upd, del }: any) {
 
 function PlaceForm({ place, onSave }: any) {
   const [f,setF] = useState({name:place?.name||'',type:place?.type||'Atracción',note:place?.note||'',rating:place?.rating||0,visited:place?.visited||0,lat:place?.lat||'',lng:place?.lng||''})
+  const [saving,setSaving] = useState(false)
+  const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
   const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
+  const handleSave=async()=>{
+    if(!f.name.trim()){setError('El nombre es requerido');return}
+    setSaving(true);setError('')
+    try{await onSave({...f,lat:f.lat?parseFloat(String(f.lat)):null,lng:f.lng?parseFloat(String(f.lng)):null})}
+    catch(e){setError('Error al guardar. Intenta nuevamente.');setSaving(false)}
+  }
   return (
     <div>
+      <ErrMsg msg={error} />
       <FG label="Nombre"><input className="form-input" value={f.name} onChange={e=>s('name',e.target.value)} onKeyDown={hk} autoFocus /></FG>
       <FG label="Tipo"><input className="form-input" value={f.type} onChange={e=>s('type',e.target.value)} onKeyDown={hk} placeholder="Monumento, Playa, Restaurante..." /></FG>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
         <FG label="Latitud"><input className="form-input" type="number" step="any" value={f.lat} onChange={e=>s('lat',e.target.value)} placeholder="-22.9519" /></FG>
         <FG label="Longitud"><input className="form-input" type="number" step="any" value={f.lng} onChange={e=>s('lng',e.target.value)} placeholder="-43.2105" /></FG>
       </div>
-      {f.lat&&f.lng&&<div style={{marginBottom:12,borderRadius:10,overflow:'hidden',height:150,border:'1px solid var(--border)'}}><iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(String(f.lng))-0.01},${parseFloat(String(f.lat))-0.01},${parseFloat(String(f.lng))+0.01},${parseFloat(String(f.lat))+0.01}&layer=mapnik&marker=${f.lat},${f.lng}`} style={{width:'100%',height:'100%',border:'none'}} loading="lazy" /></div>}
+      {f.lat&&f.lng&&<div style={{marginBottom:12,borderRadius:10,overflow:'hidden',height:140,border:'1px solid var(--border)'}}><iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(String(f.lng))-0.01},${parseFloat(String(f.lat))-0.01},${parseFloat(String(f.lng))+0.01},${parseFloat(String(f.lat))+0.01}&layer=mapnik&marker=${f.lat},${f.lng}`} style={{width:'100%',height:'100%',border:'none'}} loading="lazy" /></div>}
       <div style={{padding:'8px 12px',background:'rgba(74,127,165,0.06)',border:'1px solid rgba(74,127,165,0.15)',borderRadius:10,fontSize:12,color:'var(--text-mid)',marginBottom:12}}>
-        💡 Busca en <a href="https://www.openstreetmap.org" target="_blank" rel="noreferrer" style={{color:'#4a7fa5'}}>openstreetmap.org</a>, click derecho → "Mostrar dirección" para obtener coordenadas.
+        💡 Busca en <a href="https://www.openstreetmap.org" target="_blank" rel="noreferrer" style={{color:'#4a7fa5'}}>openstreetmap.org</a> → click derecho → copiar coordenadas.
       </div>
       <FG label="Nota personal"><textarea className="form-input" rows={2} value={f.note} onChange={e=>s('note',e.target.value)} /></FG>
       <FG label="Calificación">
         <div style={{display:'flex',gap:10}}>{[1,2,3,4,5].map(n=><span key={n} style={{fontSize:26,cursor:'pointer',color:n<=f.rating?'#b87333':'var(--border)',transition:'all 0.15s'}} onClick={()=>s('rating',n)}>★</span>)}</div>
       </FG>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
-        <Btn onClick={()=>f.name&&onSave({...f,lat:f.lat?parseFloat(String(f.lat)):null,lng:f.lng?parseFloat(String(f.lng)):null})} primary>{place?'Guardar':'Agregar'}</Btn>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}>
+        <Btn onClick={handleSave} primary loading={saving}>{place?'Guardar':'Agregar'}</Btn>
       </div>
     </div>
   )
@@ -709,10 +776,18 @@ function TabDocuments({ trip, items, add, upd, del }: any) {
 
 function DocForm({ doc, onSave }: any) {
   const [f,setF] = useState({name:doc?.name||'',type:doc?.type||'otro',url:doc?.url||'',status:doc?.status||'activo',notes:doc?.notes||''})
+  const [saving,setSaving] = useState(false)
+  const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
   const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
+  const handleSave=async()=>{
+    if(!f.name.trim()){setError('El nombre es requerido');return}
+    setSaving(true);setError('')
+    try{await onSave(f)}catch(e){setError('Error al guardar.');setSaving(false)}
+  }
   return (
     <div>
+      <ErrMsg msg={error} />
       <FG label="Nombre"><input className="form-input" value={f.name} onChange={e=>s('name',e.target.value)} onKeyDown={hk} autoFocus /></FG>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
         <FG label="Tipo">
@@ -730,8 +805,8 @@ function DocForm({ doc, onSave }: any) {
       </div>
       <FG label="URL"><input className="form-input" type="url" value={f.url} onChange={e=>s('url',e.target.value)} placeholder="https://..." /></FG>
       <FG label="Notas"><textarea className="form-input" rows={2} value={f.notes} onChange={e=>s('notes',e.target.value)} /></FG>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
-        <Btn onClick={()=>f.name&&onSave(f)} primary>{doc?'Guardar':'Agregar'}</Btn>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}>
+        <Btn onClick={handleSave} primary loading={saving}>{doc?'Guardar':'Agregar'}</Btn>
       </div>
     </div>
   )
@@ -739,17 +814,12 @@ function DocForm({ doc, onSave }: any) {
 
 /* ── CHECKLIST ── */
 function TabChecklist({ trip, items, add, upd, del }: any) {
-  const ck = items?.checklist||[]
-  const cats = [...new Set(ck.map((i:any)=>i.category))] as string[]
-  const done = ck.filter((i:any)=>i.checked).length
-  const [newCat,setNewCat] = useState('')
-  const [newTxt,setNewTxt] = useState('')
-
-  const addI = async (cat:string) => {
-    if(!newTxt.trim()) return
-    await add('checklist',{category:cat,name:newTxt.trim(),checked:0})
-    setNewTxt(''); setNewCat('')
-  }
+  const ck=items?.checklist||[]
+  const cats=[...new Set(ck.map((i:any)=>i.category))] as string[]
+  const done=ck.filter((i:any)=>i.checked).length
+  const [newCat,setNewCat]=useState('')
+  const [newTxt,setNewTxt]=useState('')
+  const addI=async(cat:string)=>{ if(!newTxt.trim())return; await add('checklist',{category:cat,name:newTxt.trim(),checked:0}); setNewTxt('');setNewCat('') }
 
   return (
     <div className="fade-in">
@@ -765,8 +835,7 @@ function TabChecklist({ trip, items, add, upd, del }: any) {
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:14}}>
         {cats.map(cat=>{
-          const ci = ck.filter((i:any)=>i.category===cat)
-          const cd = ci.filter((i:any)=>i.checked).length
+          const ci=ck.filter((i:any)=>i.category===cat); const cd=ci.filter((i:any)=>i.checked).length
           return (
             <div key={cat} style={{background:'var(--bg-card)',borderRadius:14,border:'1px solid var(--border)',overflow:'hidden'}}>
               <div style={{padding:'11px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid var(--border)',background:cd===ci.length&&ci.length>0?'rgba(74,124,89,0.06)':undefined}}>
@@ -787,7 +856,7 @@ function TabChecklist({ trip, items, add, upd, del }: any) {
                 <div style={{padding:'7px 12px',display:'flex',gap:7}}>
                   <input className="form-input" style={{flex:1,padding:'6px 10px',fontSize:13}} value={newTxt} onChange={e=>setNewTxt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addI(cat)}}} placeholder="Nuevo ítem..." autoFocus />
                   <button onClick={()=>addI(cat)} style={{padding:'6px 12px',background:'#b87333',color:'white',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>+</button>
-                  <button onClick={()=>{setNewCat('');setNewTxt('')}} style={{padding:'6px 10px',background:'transparent',color:'var(--text-light)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>✕</button>
+                  <button onClick={()=>{setNewCat('');setNewTxt('')}} style={{padding:'6px 10px',background:'transparent',color:'var(--text-light)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,cursor:'pointer'}}>✕</button>
                 </div>
               ):(
                 <div style={{padding:'7px 16px'}}>
@@ -804,8 +873,8 @@ function TabChecklist({ trip, items, add, upd, del }: any) {
 
 /* ── PROPOSALS ── */
 function TabProposals({ trip, items, add, upd, del }: any) {
-  const [modal,setModal] = useState(false)
-  const props = items?.proposals||[]
+  const [modal,setModal]=useState(false)
+  const props=items?.proposals||[]
   return (
     <div className="fade-in">
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:20}}>
@@ -844,14 +913,22 @@ function TabProposals({ trip, items, add, upd, del }: any) {
 }
 
 function ProposalForm({ onSave }: any) {
-  const [f,setF] = useState({title:'',description:''})
+  const [f,setF]=useState({title:'',description:''})
+  const [saving,setSaving]=useState(false)
+  const [error,setError]=useState('')
   const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
+  const handleSave=async()=>{
+    if(!f.title.trim()){setError('El título es requerido');return}
+    setSaving(true);setError('')
+    try{await onSave(f)}catch(e){setError('Error al guardar.');setSaving(false)}
+  }
   return (
     <div>
+      <ErrMsg msg={error} />
       <FG label="Título"><input className="form-input" value={f.title} onChange={e=>setF(p=>({...p,title:e.target.value}))} onKeyDown={hk} autoFocus /></FG>
       <FG label="Descripción"><textarea className="form-input" rows={3} value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))} /></FG>
       <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
-        <Btn onClick={()=>f.title&&onSave(f)} primary>Agregar</Btn>
+        <Btn onClick={handleSave} primary loading={saving}>Agregar</Btn>
       </div>
     </div>
   )
@@ -859,9 +936,9 @@ function ProposalForm({ onSave }: any) {
 
 /* ── JOURNAL ── */
 function TabJournal({ trip, items, add, upd, del }: any) {
-  const [modal,setModal] = useState(false)
-  const [editing,setEditing] = useState<any>(null)
-  const journal = [...(items?.journal||[])].sort((a:any,b:any)=>a.day-b.day)
+  const [modal,setModal]=useState(false)
+  const [editing,setEditing]=useState<any>(null)
+  const journal=[...(items?.journal||[])].sort((a:any,b:any)=>a.day-b.day)
   return (
     <div className="fade-in">
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:24}}>
@@ -905,11 +982,19 @@ function TabJournal({ trip, items, add, upd, del }: any) {
 }
 
 function JournalForm({ entry, onSave }: any) {
-  const [f,setF] = useState({day:entry?.day||1,date:entry?.date||'',title:entry?.title||'',text:entry?.text||'',rating:entry?.rating||0})
+  const [f,setF]=useState({day:entry?.day||1,date:entry?.date||'',title:entry?.title||'',text:entry?.text||'',rating:entry?.rating||0})
+  const [saving,setSaving]=useState(false)
+  const [error,setError]=useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
   const hk=(e:React.KeyboardEvent)=>{if((e.target as HTMLElement).tagName!=='TEXTAREA'&&e.key==='Enter')e.preventDefault()}
+  const handleSave=async()=>{
+    if(!f.title.trim()){setError('El título es requerido');return}
+    setSaving(true);setError('')
+    try{await onSave(f)}catch(e){setError('Error al guardar.');setSaving(false)}
+  }
   return (
     <div>
+      <ErrMsg msg={error} />
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
         <FG label="Día"><input className="form-input" type="number" min="1" value={f.day} onChange={e=>s('day',parseInt(e.target.value)||1)} onKeyDown={hk} /></FG>
         <FG label="Fecha"><input className="form-input" type="date" value={f.date} onChange={e=>s('date',e.target.value)} /></FG>
@@ -919,8 +1004,8 @@ function JournalForm({ entry, onSave }: any) {
       <FG label="¿Cómo fue el día?">
         <div style={{display:'flex',gap:8}}>{[1,2,3,4,5].map(n=><span key={n} style={{fontSize:28,cursor:'pointer',color:n<=f.rating?'#b87333':'var(--border)',transition:'all 0.15s'}} onClick={()=>s('rating',n)}>★</span>)}</div>
       </FG>
-      <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
-        <Btn onClick={()=>f.title&&onSave(f)} primary>{entry?'Guardar':'Escribir entrada'}</Btn>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}>
+        <Btn onClick={handleSave} primary loading={saving}>{entry?'Guardar':'Escribir entrada'}</Btn>
       </div>
     </div>
   )
@@ -928,17 +1013,16 @@ function JournalForm({ entry, onSave }: any) {
 
 /* ── SUMMARY ── */
 function TabSummary({ trip, items }: any) {
-  const exp = items?.expenses||[]
-  const fl = items?.flights||[]
-  const est = exp.reduce((s:number,e:any)=>s+(e.estimated||0),0)
-  const real = exp.reduce((s:number,e:any)=>s+(e.real||0),0)
-  const diff = real-est
-  const done = items?.itinerary?.filter((a:any)=>a.status==='realizado')||[]
-  const cancelled = items?.itinerary?.filter((a:any)=>a.status==='cancelado')||[]
-  const vis = items?.places?.filter((p:any)=>p.visited)||[]
-  const flIda = fl.find((f:any)=>f.type==='ida')
-  const flReg = fl.find((f:any)=>f.type==='regreso')
-  const insights: string[] = []
+  const exp=items?.expenses||[],fl=items?.flights||[]
+  const est=exp.reduce((s:number,e:any)=>s+(e.estimated||0),0)
+  const real=exp.reduce((s:number,e:any)=>s+(e.real||0),0)
+  const diff=real-est
+  const done=items?.itinerary?.filter((a:any)=>a.status==='realizado')||[]
+  const cancelled=items?.itinerary?.filter((a:any)=>a.status==='cancelado')||[]
+  const vis=items?.places?.filter((p:any)=>p.visited)||[]
+  const flIda=fl.find((f:any)=>f.type==='ida')
+  const flReg=fl.find((f:any)=>f.type==='regreso')
+  const insights:string[]=[]
   if(diff>0) insights.push(`Gastaste ${fmt(diff,trip?.currency)} más de lo estimado`)
   if(diff<0) insights.push(`¡Ahorraste ${fmt(Math.abs(diff),trip?.currency)} respecto al presupuesto! 🎉`)
   if(cancelled.length>0) insights.push(`Cancelaste ${cancelled.length} actividad${cancelled.length>1?'es':''}`)
@@ -946,20 +1030,19 @@ function TabSummary({ trip, items }: any) {
 
   return (
     <div className="fade-in">
-      <div style={{textAlign:'center',padding:'40px 0 32px',marginBottom:32,borderBottom:'1px solid var(--border)'}}>
+      <div style={{textAlign:'center',padding:'40px 0 30px',marginBottom:28,borderBottom:'1px solid var(--border)'}}>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:12}}>Resumen del viaje</div>
         <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:44,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip?.name}</div>
         <div style={{fontSize:14,color:'var(--text-mid)',marginTop:8}}>{trip?.destination} · {trip?.start_date} → {trip?.end_date}</div>
         <button onClick={()=>window.print()} style={{marginTop:18,padding:'9px 20px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'inline-flex',alignItems:'center',gap:6}}>🖨️ Exportar PDF</button>
       </div>
-
       {(flIda||flReg)&&(
         <div style={{background:'var(--bg-card)',borderRadius:16,padding:'20px 24px',border:'1px solid var(--border)',marginBottom:20}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:14}}>Vuelos del viaje</div>
           {[flIda,flReg].filter(Boolean).map((f:any)=>(
             <div key={f.id} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',background:'var(--bg-cream)',borderRadius:12,marginBottom:8,flexWrap:'wrap'}}>
               <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20,background:f.type==='ida'?'rgba(74,127,165,0.1)':'rgba(74,124,89,0.1)',color:f.type==='ida'?'#4a7fa5':'#4a7c59'}}>{f.type==='ida'?'✈️ Ida':'🔄 Regreso'}</span>
-              <div style={{flex:1,minWidth:160}}>
+              <div style={{flex:1,minWidth:140}}>
                 <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:16,color:'var(--navy)'}}>{f.origin_airport} → {f.has_layover?`${f.layover_airport} → `:''}{f.destination_airport}</div>
                 <div style={{fontSize:12,color:'var(--text-mid)',marginTop:1}}>{f.origin_city} → {f.has_layover?`${f.layover_city} → `:''}{f.destination_city}</div>
               </div>
@@ -973,7 +1056,6 @@ function TabSummary({ trip, items }: any) {
           ))}
         </div>
       )}
-
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:20}}>
         {[
           {icon:'💰',title:'Gasto total',value:fmt(real,trip?.currency),detail:`${diff>0?'+':''}${fmt(diff)} vs estimado`,color:diff>0?'#c45c5c':'#4a7c59'},
@@ -989,7 +1071,6 @@ function TabSummary({ trip, items }: any) {
           </div>
         ))}
       </div>
-
       {insights.length>0&&(
         <div style={{background:'var(--bg-card)',borderRadius:16,padding:'22px 26px',border:'1px solid var(--border)'}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:16}}>Insights del viaje</div>
@@ -1003,4 +1084,9 @@ function TabSummary({ trip, items }: any) {
       )}
     </div>
   )
+}
+
+function ErrMsg({ msg }: { msg:string }) {
+  if(!msg) return null
+  return <div style={{padding:'10px 14px',background:'rgba(196,92,92,0.08)',border:'1px solid rgba(196,92,92,0.2)',borderRadius:10,fontSize:13,color:'#c45c5c',marginBottom:14}}>{msg}</div>
 }
