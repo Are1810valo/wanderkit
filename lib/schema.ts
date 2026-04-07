@@ -14,7 +14,6 @@ export async function createTables() {
       color_idx INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
     );
-
     CREATE TABLE IF NOT EXISTS flights (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
@@ -31,11 +30,15 @@ export async function createTables() {
       arrival_time TEXT,
       has_layover INTEGER DEFAULT 0,
       layover_airport TEXT,
+      layover_city TEXT,
+      layover_arrival_time TEXT,
+      layover_departure_time TEXT,
       layover_duration TEXT,
+      price REAL,
+      persons INTEGER DEFAULT 1,
       notes TEXT,
       FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
     );
-
     CREATE TABLE IF NOT EXISTS itinerary (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
@@ -48,7 +51,6 @@ export async function createTables() {
       note TEXT,
       FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
     );
-
     CREATE TABLE IF NOT EXISTS expenses (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
@@ -60,7 +62,6 @@ export async function createTables() {
       paid_by TEXT,
       FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
     );
-
     CREATE TABLE IF NOT EXISTS places (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
@@ -73,7 +74,6 @@ export async function createTables() {
       lng REAL,
       FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
     );
-
     CREATE TABLE IF NOT EXISTS documents (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
@@ -84,7 +84,6 @@ export async function createTables() {
       notes TEXT,
       FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
     );
-
     CREATE TABLE IF NOT EXISTS proposals (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
@@ -93,7 +92,6 @@ export async function createTables() {
       my_vote TEXT,
       FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
     );
-
     CREATE TABLE IF NOT EXISTS journal (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
@@ -104,7 +102,6 @@ export async function createTables() {
       rating INTEGER DEFAULT 0,
       FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE
     );
-
     CREATE TABLE IF NOT EXISTS checklist (
       id TEXT PRIMARY KEY,
       trip_id TEXT NOT NULL,
