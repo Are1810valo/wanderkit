@@ -1085,8 +1085,3 @@ function TabSummary({ trip, items }: any) {
     </div>
   )
 }
-
-function ErrMsg({ msg }: { msg:string }) {
-  if(!msg) return null
-  return <div style={{padding:'10px 14px',background:'rgba(196,92,92,0.08)',border:'1px solid rgba(196,92,92,0.2)',borderRadius:10,fontSize:13,color:'#c45c5c',marginBottom:14}}>{msg}</div>
-}
