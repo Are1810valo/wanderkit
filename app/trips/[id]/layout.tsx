@@ -21,7 +21,6 @@ const TABS = [
 const fmt = (n: number, cur = 'USD') =>
   !n && n !== 0 ? '—' : new Intl.NumberFormat('es-CL',{style:'currency',currency:cur,maximumFractionDigits:0}).format(n)
 
-/* ── TOAST ── */
 type TT = 'success'|'error'|'info'
 let _tid = 0
 export let addToast: ((m:string,t:TT)=>void) = ()=>{}
@@ -50,7 +49,6 @@ export function ToastContainer() {
   )
 }
 
-/* ── MODAL ── */
 function Modal({ title, onClose, children }: any) {
   useEffect(()=>{
     document.body.style.overflow='hidden'
@@ -76,7 +74,6 @@ function FG({ label, children }: any) {
   )
 }
 
-/* ── EDIT TRIP MODAL ── */
 function EditTripModal({ trip, onClose, onSave }: any) {
   const [f,setF] = useState({
     name:trip.name||'', destination:trip.destination||'',
@@ -137,25 +134,22 @@ function EditTripModal({ trip, onClose, onSave }: any) {
   )
 }
 
-/* ── LAYOUT ── */
 export default function TripLayout({ children, params }: { children: React.ReactNode, params: Promise<{id:string}> }) {
   const router    = useRouter()
   const pathname  = usePathname()
   const tabsRef   = useRef<HTMLDivElement>(null)
-  const [trip, setTrip]           = useState<any>(null)
-  const [allTrips, setAllTrips]   = useState<any[]>([])
-  const [tripId, setTripId]       = useState('')
+  const [trip, setTrip]               = useState<any>(null)
+  const [allTrips, setAllTrips]       = useState<any[]>([])
+  const [tripId, setTripId]           = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [showEdit, setShowEdit]   = useState(false)
+  const [showEdit, setShowEdit]       = useState(false)
   const [loadingTrip, setLoadingTrip] = useState(true)
 
-  // Auto dark/light mode
   useEffect(()=>{
     const apply=()=>document.documentElement.setAttribute('data-theme',new Date().getHours()>=7&&new Date().getHours()<19?'light':'dark')
     apply(); const iv=setInterval(apply,60000); return()=>clearInterval(iv)
   },[])
 
-  // Load trip data once
   useEffect(()=>{
     params.then(p=>{ setTripId(p.id); loadData(p.id) })
   },[])
@@ -215,7 +209,6 @@ export default function TripLayout({ children, params }: { children: React.React
       <ToastContainer />
       {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:499,backdropFilter:'blur(4px)'}} />}
 
-      {/* ── SIDEBAR ── */}
       <div className={`sidebar-responsive${sidebarOpen?' open':''}`} style={{width:260,minWidth:260,display:'flex',flexDirection:'column',background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,0.05)',overflow:'hidden',position:'relative',zIndex:10,flexShrink:0}}>
         <div style={{padding:'24px 20px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',cursor:'pointer'}} onClick={()=>router.push('/')}>
           <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:24,fontWeight:300,color:'#f0ece3',lineHeight:1}}>Wander<em style={{color:'#b87333',fontStyle:'italic'}}>Kit</em></div>
@@ -255,9 +248,7 @@ export default function TripLayout({ children, params }: { children: React.React
         </div>
       </div>
 
-      {/* ── MAIN ── */}
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        {/* Mobile header */}
         <div className="mobile-header no-print" style={{display:'none',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',background:'var(--bg-sidebar)',borderBottom:'1px solid rgba(255,255,255,0.05)',flexShrink:0}}>
           <button onClick={()=>setSidebarOpen(true)} style={{background:'none',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',gap:4,padding:4}}>
             {[1,2,3].map(i=><div key={i} style={{width:20,height:2,background:'rgba(255,255,255,0.6)',borderRadius:2}} />)}
@@ -266,9 +257,7 @@ export default function TripLayout({ children, params }: { children: React.React
           <button onClick={()=>router.push('/')} style={{background:'rgba(255,255,255,0.06)',border:'none',borderRadius:8,padding:'6px 12px',color:'rgba(255,255,255,0.5)',fontSize:12,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>← Inicio</button>
         </div>
 
-        {/* Trip header */}
         <div className="no-print" style={{background:'var(--bg-card)',borderBottom:'1px solid var(--border)',flexShrink:0,zIndex:100,padding:'20px 44px 0'}}>
-          {/* Breadcrumb */}
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14,fontSize:12,color:'var(--text-light)'}}>
             <span onClick={()=>router.push('/')} style={{cursor:'pointer',color:'#b87333',fontWeight:500,transition:'opacity 0.15s'}} onMouseEnter={e=>e.currentTarget.style.opacity='0.7'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>Inicio</span>
             <span style={{opacity:0.4}}>›</span>
@@ -280,7 +269,6 @@ export default function TripLayout({ children, params }: { children: React.React
             <span>{TABS.find(t=>t.id===activeTab)?.label||'Resumen'}</span>
           </div>
 
-          {/* Title skeleton or real */}
           {loadingTrip ? (
             <div style={{marginBottom:20}}>
               <div className="skeleton" style={{width:160,height:12,borderRadius:4,marginBottom:12}} />
@@ -317,7 +305,6 @@ export default function TripLayout({ children, params }: { children: React.React
             </div>
           )}
 
-          {/* Tabs */}
           <div style={{position:'relative'}}>
             <div ref={tabsRef} style={{display:'flex',overflowX:'auto',scrollbarWidth:'none'}}>
               {TABS.map(t=>(
@@ -330,13 +317,10 @@ export default function TripLayout({ children, params }: { children: React.React
           </div>
         </div>
 
-        {/* Content — wrapped in TripProvider for shared cache */}
         <div style={{flex:1,overflowY:'auto',background:'var(--bg)'}}>
-          {tripId ? (
-            <TripProvider tripId={tripId}>
-              {children}
-            </TripProvider>
-          ) : children}
+          <TripProvider tripId={tripId||''}>
+            {children}
+          </TripProvider>
         </div>
       </div>
 
