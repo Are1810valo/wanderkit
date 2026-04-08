@@ -819,7 +819,23 @@ function TabChecklist({ trip, items, add, upd, del }: any) {
   const done=ck.filter((i:any)=>i.checked).length
   const [newCat,setNewCat]=useState('')
   const [newTxt,setNewTxt]=useState('')
-  const addI=async(cat:string)=>{ if(!newTxt.trim())return; await add('checklist',{category:cat,name:newTxt.trim(),checked:0}); setNewTxt('');setNewCat('') }
+  const [addingCat,setAddingCat]=useState(false)
+  const [newCatTxt,setNewCatTxt]=useState('')
+
+  const PRESET_CATS = ['Ropa','Documentos','Electrónica','Higiene','Medicamentos','Calzado','Accesorios','Otros']
+  const availablePresets = PRESET_CATS.filter(p=>!cats.includes(p))
+
+  const addI=async(cat:string)=>{
+    if(!newTxt.trim())return
+    await add('checklist',{category:cat,name:newTxt.trim(),checked:0})
+    setNewTxt('');setNewCat('')
+  }
+
+  const addCat=async(cat:string)=>{
+    if(!cat.trim())return
+    await add('checklist',{category:cat.trim(),name:'Primer ítem',checked:0})
+    setAddingCat(false);setNewCatTxt('')
+  }
 
   return (
     <div className="fade-in">
@@ -830,12 +846,32 @@ function TabChecklist({ trip, items, add, upd, del }: any) {
         </div>
         <span style={{fontSize:13,color:'var(--text-mid)',fontWeight:500}}>{ck.length>0?Math.round(done/ck.length*100):0}% empacado</span>
       </div>
-      <div style={{background:'var(--bg-cream-dark)',borderRadius:4,height:5,overflow:'hidden',marginBottom:28}}>
+      <div style={{background:'var(--bg-cream-dark)',borderRadius:4,height:5,overflow:'hidden',marginBottom:24}}>
         <div style={{width:ck.length>0?`${Math.round(done/ck.length*100)}%`:'0%',height:'100%',borderRadius:4,background:'#b87333',transition:'width 1s cubic-bezier(0.16,1,0.3,1)'}} />
       </div>
+
+      {/* Categorías vacías — estado inicial */}
+      {cats.length===0&&(
+        <div style={{textAlign:'center',padding:'40px 20px',background:'var(--bg-card)',borderRadius:16,border:'1px dashed var(--border)',marginBottom:24}}>
+          <div style={{fontSize:36,opacity:0.2,marginBottom:12}}>🧳</div>
+          <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:22,fontWeight:300,color:'var(--navy)',marginBottom:6}}>Tu maleta está vacía</div>
+          <div style={{fontSize:13,color:'var(--text-light)',marginBottom:20}}>Agrega categorías para organizar lo que llevas</div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'center'}}>
+            {PRESET_CATS.map(p=>(
+              <button key={p} onClick={()=>addCat(p)} style={{padding:'7px 14px',borderRadius:20,border:'1px solid var(--border)',background:'var(--bg)',cursor:'pointer',fontSize:12,fontWeight:500,color:'var(--text-mid)',fontFamily:'DM Sans,sans-serif',transition:'all 0.15s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='var(--bg-cream)';e.currentTarget.style.borderColor='#b87333';e.currentTarget.style.color='#b87333'}}
+                onMouseLeave={e=>{e.currentTarget.style.background='var(--bg)';e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-mid)'}}>
+                ＋ {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:14}}>
         {cats.map(cat=>{
-          const ci=ck.filter((i:any)=>i.category===cat); const cd=ci.filter((i:any)=>i.checked).length
+          const ci=ck.filter((i:any)=>i.category===cat)
+          const cd=ci.filter((i:any)=>i.checked).length
           return (
             <div key={cat} style={{background:'var(--bg-card)',borderRadius:14,border:'1px solid var(--border)',overflow:'hidden'}}>
               <div style={{padding:'11px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid var(--border)',background:cd===ci.length&&ci.length>0?'rgba(74,124,89,0.06)':undefined}}>
@@ -854,7 +890,7 @@ function TabChecklist({ trip, items, add, upd, del }: any) {
               ))}
               {newCat===cat?(
                 <div style={{padding:'7px 12px',display:'flex',gap:7}}>
-                  <input className="form-input" style={{flex:1,padding:'6px 10px',fontSize:13}} value={newTxt} onChange={e=>setNewTxt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addI(cat)}}} placeholder="Nuevo ítem..." autoFocus />
+                  <input className="form-input" style={{flex:1,padding:'6px 10px',fontSize:13}} value={newTxt} onChange={e=>setNewTxt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addI(cat)}if(e.key==='Escape'){setNewCat('');setNewTxt('')}}} placeholder="Nuevo ítem..." autoFocus />
                   <button onClick={()=>addI(cat)} style={{padding:'6px 12px',background:'#b87333',color:'white',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>+</button>
                   <button onClick={()=>{setNewCat('');setNewTxt('')}} style={{padding:'6px 10px',background:'transparent',color:'var(--text-light)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,cursor:'pointer'}}>✕</button>
                 </div>
@@ -867,10 +903,36 @@ function TabChecklist({ trip, items, add, upd, del }: any) {
           )
         })}
       </div>
+
+      {/* Botones para agregar categorías */}
+      {cats.length>0&&(
+        <div style={{marginTop:20}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:12}}>Agregar categoría</div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+            {availablePresets.map(p=>(
+              <button key={p} onClick={()=>addCat(p)} style={{padding:'6px 14px',borderRadius:20,border:'1px solid var(--border)',background:'transparent',cursor:'pointer',fontSize:12,fontWeight:500,color:'var(--text-mid)',fontFamily:'DM Sans,sans-serif',transition:'all 0.15s'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='#b87333';e.currentTarget.style.color='#b87333'}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-mid)'}}>
+                ＋ {p}
+              </button>
+            ))}
+            {addingCat?(
+              <div style={{display:'flex',gap:7,alignItems:'center'}}>
+                <input className="form-input" style={{padding:'6px 10px',fontSize:13,width:160}} value={newCatTxt} onChange={e=>setNewCatTxt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addCat(newCatTxt)}if(e.key==='Escape')setAddingCat(false)}} placeholder="Nueva categoría..." autoFocus />
+                <button onClick={()=>addCat(newCatTxt)} style={{padding:'6px 12px',background:'#b87333',color:'white',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>+</button>
+                <button onClick={()=>setAddingCat(false)} style={{padding:'6px 10px',background:'transparent',color:'var(--text-light)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,cursor:'pointer'}}>✕</button>
+              </div>
+            ):(
+              <button onClick={()=>setAddingCat(true)} style={{padding:'6px 14px',borderRadius:20,border:'1.5px dashed var(--border)',background:'transparent',cursor:'pointer',fontSize:12,fontWeight:500,color:'var(--text-light)',fontFamily:'DM Sans,sans-serif'}}>
+                ＋ Otra...
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
 /* ── PROPOSALS ── */
 function TabProposals({ trip, items, add, upd, del }: any) {
   const [modal,setModal]=useState(false)
