@@ -1,64 +1,48 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createTables } from '@/lib/schema'
+import { z } from 'zod'
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const uid = () => Math.random().toString(36).slice(2, 10)
+
+const TripSchema = z.object({
+  name: z.string().min(1, 'El nombre es requerido').max(100),
+  destination: z.string().max(200).optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
+  budget: z.number().min(0).optional().default(0),
+  currency: z.string().length(3).optional().default('USD'),
+  status: z.enum(['planificado', 'en curso', 'finalizado']).optional().default('planificado'),
+  colorIdx: z.number().min(0).max(10).optional().default(0),
+})
+
+export async function GET() {
   try {
-    // 1. Desempaquetar el ID (Obligatorio en Next.js 15+)
-    const { id } = await params
-    
-    // 2. Asegurar que las tablas existen
     await createTables()
+    const result = await db.execute('SELECT * FROM trips ORDER BY created_at DESC')
+    return NextResponse.json(result.rows)
+  } catch (e) {
+    return NextResponse.json({ error: 'Error al obtener viajes' }, { status: 500 })
+  }
+}
 
-    // 3. Consulta paralela de toda la información relacionada al viaje
-    const [
-      tripResult,
-      flights,
-      itinerary,
-      expenses,
-      places,
-      documents,
-      proposals,
-      journal,
-      checklist
-    ] = await Promise.all([
-      db.execute({ sql: 'SELECT * FROM trips WHERE id = ?', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM flights WHERE trip_id=? ORDER BY departure_date, departure_time', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM itinerary WHERE trip_id=? ORDER BY day, time', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM expenses WHERE trip_id=?', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM places WHERE trip_id=?', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM documents WHERE trip_id=?', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM proposals WHERE trip_id=?', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM journal WHERE trip_id=? ORDER BY day', args: [id] }),
-      db.execute({ sql: 'SELECT * FROM checklist WHERE trip_id=?', args: [id] }),
-    ])
-
-    // 4. Verificar si el viaje existe
-    if (!tripResult.rows || tripResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Viaje no encontrado' }, { status: 404 })
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const parsed = TripSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
     }
-
-    // 5. Retornar objeto unificado (Datos del viaje + listas de detalles)
-    return NextResponse.json({
-      ...tripResult.rows[0],
-      flights: flights.rows,
-      itinerary: itinerary.rows,
-      expenses: expenses.rows,
-      places: places.rows,
-      documents: documents.rows,
-      proposals: proposals.rows,
-      journal: journal.rows,
-      checklist: checklist.rows,
+    const d = parsed.data
+    const id = uid()
+    await db.execute({
+      sql: `INSERT INTO trips (id, name, destination, start_date, end_date, currency, budget, status, color_idx)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, d.name, d.destination || null, d.startDate || null, d.endDate || null,
+             d.currency, d.budget, d.status, d.colorIdx]
     })
-
-  } catch (error) {
-    console.error('Error en API dynamic route:', error)
-    return NextResponse.json(
-      { error: 'Error interno al obtener los datos del viaje' }, 
-      { status: 500 }
-    )
+    return NextResponse.json({ id })
+  } catch (e) {
+    return NextResponse.json({ error: 'Error al crear viaje' }, { status: 500 })
   }
 }
