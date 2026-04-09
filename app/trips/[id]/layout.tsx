@@ -275,7 +275,7 @@ export default function TripLayout({ children, params }: { children: React.React
   }
 
   return (
-    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg)'}}>
+    <div style={{display:'flex',height:'100vh',overflow:'visible',background:'var(--bg)'}}>
       <ToastContainer />
       {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:499,backdropFilter:'blur(4px)'}} />}
 
