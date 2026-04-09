@@ -44,12 +44,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
     }
     const d = parsed.data
+    const session = await getServerSession()
+    const email = session?.user?.email || null
     const id = uid()
     await db.execute({
-      sql: `INSERT INTO trips (id, name, destination, start_date, end_date, currency, budget, status, color_idx)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO trips (id, name, destination, start_date, end_date, currency, budget, status, color_idx, owner_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [id, d.name, d.destination || null, d.startDate || null, d.endDate || null,
-             d.currency, d.budget, d.status, d.colorIdx]
+             d.currency, d.budget, d.status, d.colorIdx, email]
     })
     return NextResponse.json({ id })
   } catch (e) {
