@@ -246,7 +246,16 @@ export default function Home() {
 
             {trips.length === 0 && (
               <div className="fade-up-3" style={{ textAlign: 'center', padding: '80px 20px', background: 'var(--bg-card)', borderRadius: 20, border: '1px dashed var(--border)' }}>
-                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 36, color: 'var(--navy)', fontWeight: 300, marginBottom: 12 }}>Tu próxima aventura te espera</div>
+                <div className="fade-up-3" style={{ textAlign: 'center', padding: '80px 20px', background: 'var(--bg-card)', borderRadius: 20, border: '1px dashed var(--border)' }}>
+  <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.15 }}>✈️</div>
+  <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 36, color: 'var(--navy)', fontWeight: 300, marginBottom: 12 }}>Tu próxima aventura te espera</div>
+  <div style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 32, maxWidth: 400, margin: '0 auto 32px', lineHeight: 1.6 }}>Crea tu primer viaje y empieza a planificar vuelos, gastos, itinerario y más.</div>
+  <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ padding: '14px 32px', background: '#b87333', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 20px rgba(184,115,51,0.35)', marginBottom: 24 }}>＋ Crear primer viaje</button>
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, maxWidth: 500, margin: '0 auto' }}>
+    {[{icon:'✈️',t:'Vuelos',d:'Ida, regreso y escalas'},{icon:'💰',t:'Gastos',d:'Plan vs real'},{icon:'📍',t:'Lugares',d:'Con mapa integrado'},{icon:'📋',t:'Itinerario',d:'Día a día'},{icon:'📂',t:'Documentos',d:'Reservas y pasajes'},{icon:'📝',t:'Diario',d:'Recuerda cada momento'}]
+      .map((f,i)=><div key={i} style={{padding:'12px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)'}}><div style={{fontSize:20,marginBottom:4}}>{f.icon}</div><div style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{f.t}</div><div style={{fontSize:11,color:'var(--text-light)'}}>{f.d}</div></div>)}
+  </div>
+</div>
                 <div style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 28 }}>Crea tu primer viaje para comenzar</div>
                 <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ padding: '12px 28px', background: '#b87333', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>＋ Crear primer viaje</button>
               </div>
