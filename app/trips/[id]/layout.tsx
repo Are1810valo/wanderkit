@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import axios from 'axios'
 import { TripProvider } from '@/lib/context/TripContext'
 import { signOut } from 'next-auth/react'
+import { createPortal } from 'react-dom'
 
 const COLORS = ['#b87333','#4a7c59','#4a7fa5','#8a5aaa','#c45c5c','#3a8a7c']
 const TABS = [
@@ -51,18 +52,18 @@ export function ToastContainer() {
 }
 
 function Modal({ title, onClose, children }: any) {
-  useEffect(()=>{
-    document.body.style.overflow='hidden'
-    return ()=>{ document.body.style.overflow='' }
-  },[])
-  return (
-    <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',backdropFilter:'blur(12px)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:9999,padding:'20px',paddingTop:'80px',overflowY:'auto'}} onClick={onClose}>
-      <div style={{background:'var(--bg)',borderRadius:20,padding:'32px 36px',width:'100%',maxWidth:580,marginTop:'auto',marginBottom:'auto',border:'1px solid var(--border)',position:'relative'}} onClick={e=>e.stopPropagation()}>
+  const [mounted, setMounted] = useState(false)
+  useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return()=>{ document.body.style.overflow='' } },[])
+  if(!mounted) return null
+  return createPortal(
+    <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:9999,padding:'20px',paddingTop:'80px',overflowY:'auto'}} onClick={onClose}>
+      <div style={{background:'var(--bg)',borderRadius:20,padding:'32px 36px',width:'100%',maxWidth:580,marginBottom:'auto',border:'1px solid var(--border)',position:'relative'}} onClick={e=>e.stopPropagation()}>
         <button onClick={onClose} style={{position:'absolute',top:16,right:16,width:28,height:28,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--bg-cream)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'var(--text-light)'}}>✕</button>
         <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)',marginBottom:22,paddingRight:32}}>{title}</div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -275,7 +276,7 @@ export default function TripLayout({ children, params }: { children: React.React
   }
 
   return (
-    <div style={{display:'flex',height:'100vh',overflow:'visible',background:'var(--bg)'}}>
+    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg)'}}>
       <ToastContainer />
       {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:499,backdropFilter:'blur(4px)'}} />}
 
@@ -312,10 +313,11 @@ export default function TripLayout({ children, params }: { children: React.React
           ))}
         </div>
         <div style={{padding:'12px 10px',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
-          <button onClick={()=>signOut()} style={{width:'100%',padding:'8px',borderRadius:8,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:11,fontWeight:500,color:'rgba(255,255,255,0.3)',background:'transparent',border:'none',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
-  ↪ Cerrar sesión
-</button>
-          <button onClick={()=>router.push('/?new=1')} style={{width:'100%',padding:'10px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,color:'#b87333',background:'rgba(184,115,51,0.1)',border:'1.5px solid rgba(184,115,51,0.28)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+<button onClick={()=>signOut({callbackUrl:'/login'})} style={{width:'100%',padding:'10px 12px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',marginBottom:8,display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}}
+  onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.7)'}}
+  onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.4)'}}>
+  <span style={{fontSize:14}}>↪</span> Cerrar sesión
+</button>          <button onClick={()=>router.push('/?new=1')} style={{width:'100%',padding:'10px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,color:'#b87333',background:'rgba(184,115,51,0.1)',border:'1.5px solid rgba(184,115,51,0.28)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
             ＋ Nuevo viaje
           </button>
         </div>

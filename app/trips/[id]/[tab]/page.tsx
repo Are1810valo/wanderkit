@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import { useParams } from 'next/navigation'
 import { useTripContext } from '@/lib/context/TripContext'
 import axios from 'axios'
+import { createPortal } from 'react-dom'
 
 const fmt = (n: number, cur = 'USD') =>
   !n && n !== 0 ? '—' : new Intl.NumberFormat('es-CL',{style:'currency',currency:cur,maximumFractionDigits:0}).format(n)
@@ -55,18 +56,22 @@ function LazyMap({ lat, lng, active, onActivate }: { lat:number, lng:number, act
 }
 
 const Modal = memo(({ title, onClose, children }: any) => {
-  useEffect(()=>{ document.body.style.overflow='hidden'; return()=>{ document.body.style.overflow='' } },[])
-  return (
-    <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',backdropFilter:'blur(12px)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:9999,padding:'20px',paddingTop:'80px',overflowY:'auto'}} onClick={onClose}>
+  const [mounted, setMounted] = useState(false)
+  useEffect(()=>{ setMounted(true); document.body.style.overflow='hidden'; return()=>{ document.body.style.overflow='' } },[])
+  if(!mounted) return null
+  return createPortal(
+    <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:9999,padding:'20px',paddingTop:'80px',overflowY:'auto'}} onClick={onClose}>
       <div style={{background:'var(--bg)',borderRadius:20,padding:'32px 36px',width:'100%',maxWidth:580,marginBottom:'auto',border:'1px solid var(--border)',position:'relative'}} onClick={e=>e.stopPropagation()}>
         <button onClick={onClose} style={{position:'absolute',top:16,right:16,width:28,height:28,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--bg-cream)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'var(--text-light)'}}>✕</button>
         <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)',marginBottom:22,paddingRight:32}}>{title}</div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 })
 Modal.displayName='Modal'
+
 
 const FG = memo(({ label, children }: any) => (
   <div style={{marginBottom:14}}>

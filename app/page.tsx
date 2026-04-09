@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import { useTrips } from '@/lib/hooks/useTrips'
 
 const tripColors = ['#b87333','#4a7c59','#4a7fa5','#8a5aaa','#c45c5c','#3a8a7c']
@@ -137,10 +138,15 @@ export default function Home() {
           ))}
         </div>
         <div style={{ padding: '14px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ width: '100%', padding: '11px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600, color: '#b87333', background: 'rgba(184,115,51,0.1)', border: '1.5px solid rgba(184,115,51,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            ＋ Nuevo viaje
-          </button>
-        </div>
+  <button onClick={()=>signOut({callbackUrl:'/login'})} style={{width:'100%',padding:'10px 12px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',marginBottom:8,display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}}
+    onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.7)'}}
+    onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.4)'}}>
+    <span style={{fontSize:14}}>↪</span> Cerrar sesión
+  </button>
+  <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ width: '100%', padding: '11px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600, color: '#b87333', background: 'rgba(184,115,51,0.1)', border: '1.5px solid rgba(184,115,51,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+    ＋ Nuevo viaje
+  </button>
+</div>
       </div>
 
       {/* ── MAIN ── */}
@@ -293,9 +299,9 @@ function NewTripModal({ onClose, onSave }: any) {
 /* ── SHARED ── */
 function Modal({ title, onClose, children }: any) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,14,28,0.7)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }} onClick={onClose}>
-      <div style={{ background: 'var(--bg)', borderRadius: 20, padding: '36px 40px', width: '100%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 28, fontWeight: 300, color: 'var(--navy)', marginBottom: 26 }}>{title}</div>
+   <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,14,28,0.7)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999, padding: '20px', paddingTop: '60px', overflowY: 'auto' }} onClick={onClose}>
+      <div style={{ background: 'var(--bg)', borderRadius: 20, padding: '36px 40px', width: '100%', maxWidth: 540, marginBottom: 'auto', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}> 
+    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 28, fontWeight: 300, color: 'var(--navy)', marginBottom: 26 }}>{title}</div>
         {children}
       </div>
     </div>
