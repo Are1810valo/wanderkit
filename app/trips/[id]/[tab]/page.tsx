@@ -397,18 +397,66 @@ function ActivityForm({ act, onSave }: any) {
 function TabExpenses({ trip, items, add, upd, del, isReader }: any) {
   const [modal,setModal] = useState(false)
   const [editing,setEditing] = useState<any>(null)
+  const [showChart,setShowChart] = useState(false)
   const exp = items?.expenses||[]
   const CE: Record<string,string> = {alojamiento:'🏨',transporte:'✈️',comida:'🍽️',actividades:'🎭',compras:'🛍️',otros:'📌'}
   const est=exp.reduce((s:number,e:any)=>s+(e.estimated||0),0)
   const real=exp.reduce((s:number,e:any)=>s+(e.real||0),0)
   const diff=real-est
+
+  // Datos para gráfico por categoría
+  const cats = ['alojamiento','transporte','comida','actividades','compras','otros']
+  const chartData = cats.map(cat=>({
+    name: cat, icon: CE[cat],
+    estimado: exp.filter((e:any)=>e.category===cat).reduce((s:number,e:any)=>s+(e.estimated||0),0),
+    real: exp.filter((e:any)=>e.category===cat).reduce((s:number,e:any)=>s+(e.real||0),0),
+  })).filter(d=>d.estimado>0||d.real>0)
+
   return (
     <div className="fade-in">
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:24}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:16}}>
         {[{l:'Estimado total',v:fmt(est,trip?.currency),c:'#4a7fa5'},{l:'Real gastado',v:fmt(real,trip?.currency),c:'#4a7c59'},{l:'Diferencia',v:`${diff>0?'+':''}${fmt(diff,trip?.currency)}`,c:diff>0?'#c45c5c':'#4a7c59'}]
           .map((s,i)=><div key={i} style={{background:'var(--bg-card)',borderRadius:14,padding:'18px 20px',border:'1px solid var(--border)',textAlign:'center'}}><div style={{fontSize:9,fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:8}}>{s.l}</div><div style={{fontFamily:'Cormorant Garamond,serif',fontSize:28,fontWeight:300,color:s.c}}>{s.v}</div></div>)}
       </div>
-      {!isReader&&<div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}><Btn onClick={()=>{setEditing(null);setModal(true)}} primary>＋ Gasto</Btn></div>}
+
+      {chartData.length>0&&(
+        <div style={{background:'var(--bg-card)',borderRadius:14,border:'1px solid var(--border)',marginBottom:16,overflow:'hidden'}}>
+          <div onClick={()=>setShowChart(!showChart)} style={{padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)'}}>Gastos por categoría</div>
+            <span style={{fontSize:12,color:'#b87333'}}>{showChart?'▲ Ocultar':'▼ Ver gráfico'}</span>
+          </div>
+          {showChart&&(
+            <div style={{padding:'0 18px 18px'}}>
+              {chartData.map((d,i)=>{
+                const max=Math.max(...chartData.map(x=>Math.max(x.estimado,x.real)))
+                return (
+                  <div key={i} style={{marginBottom:12}}>
+                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:4,fontSize:12}}>
+                      <span style={{color:'var(--text-mid)',textTransform:'capitalize'}}>{d.icon} {d.name}</span>
+                      <span style={{color:'var(--text-light)',fontSize:11}}>{fmt(d.real||d.estimado,trip?.currency)}</span>
+                    </div>
+                    {d.estimado>0&&<div style={{height:6,background:'var(--bg-cream-dark)',borderRadius:3,marginBottom:3,overflow:'hidden'}}>
+                      <div style={{width:`${Math.round(d.estimado/max*100)}%`,height:'100%',background:'#4a7fa5',borderRadius:3,transition:'width 0.8s cubic-bezier(0.16,1,0.3,1)'}} />
+                    </div>}
+                    {d.real>0&&<div style={{height:6,background:'var(--bg-cream-dark)',borderRadius:3,overflow:'hidden'}}>
+                      <div style={{width:`${Math.round(d.real/max*100)}%`,height:'100%',background:d.real>d.estimado?'#c45c5c':'#4a7c59',borderRadius:3,transition:'width 0.8s cubic-bezier(0.16,1,0.3,1)'}} />
+                    </div>}
+                  </div>
+                )
+              })}
+              <div style={{display:'flex',gap:16,marginTop:14,fontSize:11,color:'var(--text-light)'}}>
+                <span style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:10,height:10,borderRadius:2,background:'#4a7fa5'}} />Estimado</span>
+                <span style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:10,height:10,borderRadius:2,background:'#4a7c59'}} />Real</span>
+                <span style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:10,height:10,borderRadius:2,background:'#c45c5c'}} />Sobre estimado</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
+        {!isReader&&<Btn onClick={()=>{setEditing(null);setModal(true)}} primary>＋ Gasto</Btn>}
+      </div>
       {exp.length===0&&<Empty icon="💰" title="Sin gastos registrados" sub={isReader?'El organizador aún no ha agregado gastos':'Agrega tu primer gasto'} />}
       {exp.map((e:any)=>{
         const d=(e.real||0)-(e.estimated||0)
