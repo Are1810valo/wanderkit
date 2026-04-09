@@ -5,6 +5,9 @@ import { useParams } from 'next/navigation'
 import { useTripContext } from '@/lib/context/TripContext'
 import axios from 'axios'
 import { createPortal } from 'react-dom'
+import { DndContext, closestCenter } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const fmt = (n: number, cur = 'USD') =>
   !n && n !== 0 ? '—' : new Intl.NumberFormat('es-CL',{style:'currency',currency:cur,maximumFractionDigits:0}).format(n)
@@ -316,12 +319,35 @@ function FlightForm({ flight, currency, onSave }: any) {
   )
 }
 
+function SortableItem({ id, children }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, cursor: 'grab' }
+  return <div ref={setNodeRef} style={style} {...attributes} {...listeners}>{children}</div>
+}
+
 function TabItinerary({ trip, items, add, upd, del, isReader }: any) {
   const [modal,setModal] = useState(false)
   const [editing,setEditing] = useState<any>(null)
   const itin = items?.itinerary||[]
   const days = [...new Set(itin.map((a:any)=>a.day))].sort((a:any,b:any)=>a-b) as number[]
   if(!days.length) days.push(1)
+
+  const handleDragEnd = async(event:any, day:number) => {
+    const {active, over} = event
+    if(!over||active.id===over.id) return
+    const acts = itin.filter((a:any)=>a.day===day).sort((a:any,b:any)=>(a.time||'').localeCompare(b.time||''))
+    const oldIdx = acts.findIndex((a:any)=>a.id===active.id)
+    const newIdx = acts.findIndex((a:any)=>a.id===over.id)
+    if(oldIdx===-1||newIdx===-1) return
+    const reordered = [...acts]
+    const [moved] = reordered.splice(oldIdx,1)
+    reordered.splice(newIdx,0,moved)
+    // Intercambiar horas para reflejar el nuevo orden
+    const movedTime = acts[newIdx]?.time||null
+    const overTime = acts[oldIdx]?.time||null
+    await upd('itinerary',{...moved,time:movedTime})
+  }
+
   return (
     <div className="fade-in">
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:28,flexWrap:'wrap',gap:10}}>
@@ -333,33 +359,41 @@ function TabItinerary({ trip, items, add, upd, del, isReader }: any) {
       </div>
       {days.map(day=>{
         const acts=itin.filter((a:any)=>a.day===day).sort((a:any,b:any)=>(a.time||'').localeCompare(b.time||''))
+        const ids=acts.map((a:any)=>a.id)
         return (
           <div key={day} style={{marginBottom:36}}>
             <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14,paddingBottom:10,borderBottom:'1px solid var(--border)'}}>
               <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:20,fontWeight:400,color:'var(--navy)'}}>Día {day}</div>
               <div style={{fontSize:12,color:'var(--text-light)'}}>{acts.length} actividad{acts.length!==1?'es':''}</div>
+              {!isReader&&<div style={{fontSize:10,color:'var(--text-light)',marginLeft:'auto'}}>⠿ arrastra para reordenar</div>}
             </div>
-            {acts.map((a:any)=>(
-              <div key={a.id} className="row-hover" style={{display:'flex',alignItems:'flex-start',gap:12,padding:'14px 18px',background:'var(--bg-card)',borderRadius:14,marginBottom:8,border:'1px solid var(--border)',boxShadow:'var(--shadow-card)',borderLeft:`4px solid ${a.status==='realizado'?'#4a7c59':a.status==='cancelado'?'#c45c5c':'#b87333'}`,opacity:a.status==='cancelado'?0.6:1,transition:'all 0.15s'}}>
-                <div style={{width:32,height:32,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,background:a.status==='realizado'?'rgba(74,124,89,0.1)':a.status==='cancelado'?'rgba(196,92,92,0.1)':'rgba(184,115,51,0.1)'}}>{a.status==='realizado'?'✅':a.status==='cancelado'?'❌':'⏳'}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{a.name}</div>
-                  <div style={{display:'flex',gap:10,marginTop:3,fontSize:12,color:'var(--text-light)',flexWrap:'wrap'}}>
-                    {a.time&&<span>🕐 {a.time}</span>}
-                    {a.time_real&&<span style={{color:'#4a7c59',fontWeight:500}}>✅ {a.time_real}</span>}
-                    <span style={{background:'var(--bg-cream-dark)',padding:'1px 7px',borderRadius:5,fontSize:10,fontWeight:600,textTransform:'uppercase'}}>{a.type}</span>
-                  </div>
-                  {a.note&&<div style={{marginTop:7,padding:'7px 10px',background:'var(--bg-cream)',borderRadius:8,borderLeft:'3px solid var(--border)',fontSize:13,color:'var(--text-mid)',fontStyle:'italic'}}>"{a.note}"</div>}
-                </div>
-                {!isReader&&<div style={{display:'flex',gap:4,flexShrink:0}}>
-                  {a.status!=='realizado'&&<IBtn onClick={()=>upd('itinerary',{...a,status:'realizado'})} color="#4a7c59">✓</IBtn>}
-                  {a.status!=='cancelado'&&<IBtn onClick={()=>upd('itinerary',{...a,status:'cancelado'})} color="#c45c5c">✕</IBtn>}
-                  {a.status!=='pendiente'&&<IBtn onClick={()=>upd('itinerary',{...a,status:'pendiente'})}>↺</IBtn>}
-                  <IBtn onClick={()=>{setEditing(a);setModal(true)}}>✏️</IBtn>
-                  <IBtn onClick={()=>del('itinerary',a.id)} color="#c45c5c">🗑</IBtn>
-                </div>}
-              </div>
-            ))}
+            <DndContext collisionDetection={closestCenter} onDragEnd={(e)=>!isReader&&handleDragEnd(e,day)}>
+              <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                {acts.map((a:any)=>(
+                  <SortableItem key={a.id} id={a.id}>
+                    <div className="row-hover" style={{display:'flex',alignItems:'flex-start',gap:12,padding:'14px 18px',background:'var(--bg-card)',borderRadius:14,marginBottom:8,border:'1px solid var(--border)',boxShadow:'var(--shadow-card)',borderLeft:`4px solid ${a.status==='realizado'?'#4a7c59':a.status==='cancelado'?'#c45c5c':'#b87333'}`,opacity:a.status==='cancelado'?0.6:1,transition:'all 0.15s'}}>
+                      <div style={{width:32,height:32,borderRadius:'50%',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,background:a.status==='realizado'?'rgba(74,124,89,0.1)':a.status==='cancelado'?'rgba(196,92,92,0.1)':'rgba(184,115,51,0.1)'}}>{a.status==='realizado'?'✅':a.status==='cancelado'?'❌':'⏳'}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{a.name}</div>
+                        <div style={{display:'flex',gap:10,marginTop:3,fontSize:12,color:'var(--text-light)',flexWrap:'wrap'}}>
+                          {a.time&&<span>🕐 {a.time}</span>}
+                          {a.time_real&&<span style={{color:'#4a7c59',fontWeight:500}}>✅ {a.time_real}</span>}
+                          <span style={{background:'var(--bg-cream-dark)',padding:'1px 7px',borderRadius:5,fontSize:10,fontWeight:600,textTransform:'uppercase'}}>{a.type}</span>
+                        </div>
+                        {a.note&&<div style={{marginTop:7,padding:'7px 10px',background:'var(--bg-cream)',borderRadius:8,borderLeft:'3px solid var(--border)',fontSize:13,color:'var(--text-mid)',fontStyle:'italic'}}>"{a.note}"</div>}
+                      </div>
+                      {!isReader&&<div style={{display:'flex',gap:4,flexShrink:0}}>
+                        {a.status!=='realizado'&&<IBtn onClick={()=>upd('itinerary',{...a,status:'realizado'})} color="#4a7c59">✓</IBtn>}
+                        {a.status!=='cancelado'&&<IBtn onClick={()=>upd('itinerary',{...a,status:'cancelado'})} color="#c45c5c">✕</IBtn>}
+                        {a.status!=='pendiente'&&<IBtn onClick={()=>upd('itinerary',{...a,status:'pendiente'})}>↺</IBtn>}
+                        <IBtn onClick={()=>{setEditing(a);setModal(true)}}>✏️</IBtn>
+                        <IBtn onClick={()=>del('itinerary',a.id)} color="#c45c5c">🗑</IBtn>
+                      </div>}
+                    </div>
+                  </SortableItem>
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         )
       })}
