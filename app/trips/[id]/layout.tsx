@@ -197,6 +197,60 @@ function InviteModal({ tripId, onClose }: any) {
   )
 }
 
+function CmdK({ trips }: { trips: any[] }) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const router = useRouter()
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(()=>{
+    const handler=(e:KeyboardEvent)=>{
+      if((e.metaKey||e.ctrlKey)&&e.key==='k'){ e.preventDefault(); setOpen(o=>!o); setQ('') }
+      if(e.key==='Escape') setOpen(false)
+    }
+    window.addEventListener('keydown',handler)
+    return()=>window.removeEventListener('keydown',handler)
+  },[])
+
+  useEffect(()=>{ if(open) setTimeout(()=>inputRef.current?.focus(),50) },[open])
+
+  const results = q.trim().length<2 ? trips.slice(0,5) : trips.filter(t=>
+    t.name?.toLowerCase().includes(q.toLowerCase()) ||
+    t.destination?.toLowerCase().includes(q.toLowerCase())
+  )
+
+  if(!open) return null
+  return createPortal(
+    <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',zIndex:99999,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:120}} onClick={()=>setOpen(false)}>
+      <div style={{width:'100%',maxWidth:560,background:'var(--bg-card)',borderRadius:16,border:'1px solid var(--border)',overflow:'hidden',boxShadow:'0 24px 64px rgba(0,0,0,0.3)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 18px',borderBottom:'1px solid var(--border)'}}>
+          <span style={{fontSize:16,opacity:0.4}}>🔍</span>
+          <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar viajes..." style={{flex:1,border:'none',background:'transparent',fontSize:15,color:'var(--text)',outline:'none',fontFamily:'DM Sans,sans-serif'}} />
+          <kbd style={{padding:'2px 7px',borderRadius:6,border:'1px solid var(--border)',fontSize:11,color:'var(--text-light)',fontFamily:'DM Sans,sans-serif'}}>ESC</kbd>
+        </div>
+        <div style={{maxHeight:320,overflowY:'auto'}}>
+          {results.length===0&&<div style={{padding:'24px',textAlign:'center',fontSize:13,color:'var(--text-light)'}}>Sin resultados</div>}
+          {results.map((t:any,i:number)=>(
+            <div key={t.id} onClick={()=>{router.push(`/trips/${t.id}/overview`);setOpen(false)}}
+              style={{display:'flex',alignItems:'center',gap:12,padding:'12px 18px',cursor:'pointer',borderBottom:'1px solid var(--border)',transition:'background 0.1s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'}
+              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <div style={{width:8,height:8,borderRadius:'50%',background:'#b87333',flexShrink:0}} />
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:500,color:'var(--text)'}}>{t.name}</div>
+                <div style={{fontSize:11,color:'var(--text-light)',marginTop:1}}>{t.destination}</div>
+              </div>
+              <span style={{fontSize:11,padding:'2px 8px',borderRadius:10,background:t.status==='en curso'?'rgba(74,124,89,0.1)':'rgba(184,115,51,0.08)',color:t.status==='en curso'?'#4a7c59':'#b87333'}}>{t.status}</span>
+            </div>
+          ))}
+        </div>
+        {q.length<2&&<div style={{padding:'10px 18px',fontSize:11,color:'var(--text-light)',borderTop:'1px solid var(--border)'}}>Escribe para buscar · <kbd style={{padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)',fontSize:10}}>↑↓</kbd> navegar</div>}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export default function TripLayout({ children, params }: { children: React.ReactNode, params: Promise<{id:string}> }) {
   const router    = useRouter()
   const pathname  = usePathname()
@@ -277,7 +331,7 @@ export default function TripLayout({ children, params }: { children: React.React
 
   return (
     <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg)'}}>
-      <ToastContainer />
+      <ToastContainer /> <CmdK trips={allTrips} />
       {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:499,backdropFilter:'blur(4px)'}} />}
 
       <div className={`sidebar-responsive${sidebarOpen?' open':''}`} style={{width:260,minWidth:260,display:'flex',flexDirection:'column',background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,0.05)',overflow:'hidden',position:'relative',zIndex:10,flexShrink:0}}>
