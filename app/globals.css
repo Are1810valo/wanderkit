@@ -175,3 +175,42 @@ textarea.form-input { resize: vertical; line-height: 1.6; }
   .responsive-grid-2 { grid-template-columns: 1fr !important; }
   .responsive-text-sm { font-size: 28px !important; }
 }
+/* ── RESPONSIVE FIXES ── */
+@media (max-width: 768px) {
+  /* Header viaje */
+  .no-print[style*="padding: 20px 44px"],
+  .no-print[style*="padding:20px 44px"] {
+    padding: 14px 16px 0 !important;
+  }
+  /* Contenido tabs */
+  [style*="padding: 32px 44px"],
+  [style*="padding:32px 44px"] {
+    padding: 16px 14px 48px !important;
+  }
+  /* Grids 2 columnas → 1 columna */
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: repeat(3,1fr)"],
+  [style*="grid-template-columns: repeat(4,1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* Cards viajes */
+  [style*="grid-template-columns: repeat(auto-fill,minmax(300px"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* Header botones */
+  [style*="display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'"] {
+    gap: 6px !important;
+  }
+  /* Titulo viaje grande */
+  [style*="fontSize:34"] {
+    font-size: 24px !important;
+  }
+  [style*="fontSize:64"] {
+    font-size: 36px !important;
+  }
+  /* Modal padding */
+  [style*="padding:'32px 36px'"] {
+    padding: 20px !important;
+  }
+}
