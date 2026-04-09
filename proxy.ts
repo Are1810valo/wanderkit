@@ -41,12 +41,17 @@ export function proxy(request: NextRequest) {
   }
 
   const sitePassword = process.env.SITE_PASSWORD
-  if (sitePassword && !pathname.startsWith('/api/') && !pathname.startsWith('/login')) {
-    const cookie = request.cookies.get('wk_auth')
-    if (cookie?.value !== sitePassword) {
-      return NextResponse.redirect(new URL('/login', request.url))
+const isAuth = pathname.startsWith('/api/auth') || pathname.startsWith('/login')
+if (!isAuth) {
+  const sessionToken = request.cookies.get('next-auth.session-token') || request.cookies.get('__Secure-next-auth.session-token')
+  if (!sessionToken) {
+    if (sitePassword) {
+      const cookie = request.cookies.get('wk_auth')
+      if (cookie?.value !== sitePassword) return NextResponse.redirect(new URL('/login', request.url))
     }
   }
+}
+  
 
   return NextResponse.next()
 }
