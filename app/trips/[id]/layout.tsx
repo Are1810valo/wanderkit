@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import axios from 'axios'
 import { TripProvider } from '@/lib/context/TripContext'
+import { useTripContext } from '@/lib/context/TripContext'
 import { signOut } from 'next-auth/react'
 import { createPortal } from 'react-dom'
 
@@ -435,16 +436,7 @@ export default function TripLayout({ children, params }: { children: React.React
             </div>
           )}
 
-          <div style={{position:'relative'}}>
-            <div ref={tabsRef} style={{display:'flex',overflowX:'auto',scrollbarWidth:'none'}}>
-              {TABS.map(t=>(
-                <button key={t.id} data-tab={t.id} onClick={()=>handleTab(t.id)} style={{padding:'11px 16px',fontSize:12,fontWeight:activeTab===t.id?600:400,background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap',flexShrink:0,borderBottom:activeTab===t.id?'2px solid #b87333':'2px solid transparent',color:activeTab===t.id?'var(--navy)':'var(--text-light)',transition:'all 0.2s',marginBottom:-1}}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <div style={{position:'absolute',right:0,top:0,bottom:0,width:40,background:'linear-gradient(to left,var(--bg-card),transparent)',pointerEvents:'none'}} />
-          </div>
+          <TabsWithCounts activeTab={activeTab} onTab={handleTab} tabsRef={tabsRef} />
         </div>
 
         <div style={{flex:1,overflowY:'auto',background:'var(--bg)'}}>
@@ -456,6 +448,32 @@ export default function TripLayout({ children, params }: { children: React.React
 
       {showEdit&&trip&&<EditTripModal trip={trip} onClose={()=>setShowEdit(false)} onSave={handleSaveTrip} />}
         {showInvite&&trip&&<InviteModal tripId={tripId} onClose={()=>setShowInvite(false)} />}
+    </div>
+  )
+}
+function TabsWithCounts({ activeTab, onTab, tabsRef }: any) {
+  const { items } = useTripContext()
+  const counts: Record<string,number> = {
+    flights: items?.flights?.length||0,
+    itinerary: items?.itinerary?.length||0,
+    expenses: items?.expenses?.length||0,
+    places: items?.places?.length||0,
+    documents: items?.documents?.length||0,
+    checklist: items?.checklist?.length||0,
+    proposals: items?.proposals?.length||0,
+    journal: items?.journal?.length||0,
+  }
+  return (
+    <div style={{position:'relative'}}>
+      <div ref={tabsRef} style={{display:'flex',overflowX:'auto',scrollbarWidth:'none'}}>
+        {TABS.map(t=>(
+          <button key={t.id} data-tab={t.id} onClick={()=>onTab(t.id)} style={{padding:'11px 16px',fontSize:12,fontWeight:activeTab===t.id?600:400,background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap',flexShrink:0,borderBottom:activeTab===t.id?'2px solid #b87333':'2px solid transparent',color:activeTab===t.id?'var(--navy)':'var(--text-light)',transition:'all 0.2s',marginBottom:-1,display:'flex',alignItems:'center',gap:5}}>
+            {t.label}
+            {counts[t.id]>0&&<span style={{fontSize:10,padding:'1px 6px',borderRadius:10,background:activeTab===t.id?'rgba(184,115,51,0.15)':'var(--bg-cream-dark)',color:activeTab===t.id?'#b87333':'var(--text-light)',fontWeight:600}}>{counts[t.id]}</span>}
+          </button>
+        ))}
+      </div>
+      <div style={{position:'absolute',right:0,top:0,bottom:0,width:40,background:'linear-gradient(to left,var(--bg-card),transparent)',pointerEvents:'none'}} />
     </div>
   )
 }

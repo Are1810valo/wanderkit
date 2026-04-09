@@ -168,6 +168,25 @@ export default function Home() {
         ) : (
           <div className="responsive-padding" style={{ padding: '52px 56px 64px' }}>
 
+{(() => {
+  const today = new Date().toISOString().split('T')[0]
+  const next = trips.find(t => t.start_date && t.start_date >= today && t.status === 'planificado')
+  const daysLeft = next ? Math.ceil((new Date(next.start_date).getTime() - new Date().getTime()) / 86400000) : null
+  if (!next || daysLeft === null || daysLeft > 30) return null
+  return (
+    <div onClick={() => router.push(`/trips/${next.id}`)} className="fade-up" style={{marginBottom:24,padding:'16px 20px',background:'rgba(184,115,51,0.08)',border:'1px solid rgba(184,115,51,0.2)',borderRadius:14,cursor:'pointer',display:'flex',alignItems:'center',gap:14,transition:'all 0.15s'}}
+      onMouseEnter={e=>e.currentTarget.style.background='rgba(184,115,51,0.12)'}
+      onMouseLeave={e=>e.currentTarget.style.background='rgba(184,115,51,0.08)'}>
+      <div style={{fontSize:28}}>✈️</div>
+      <div>
+        <div style={{fontSize:13,fontWeight:600,color:'#b87333'}}>Viaje próximo en {daysLeft === 0 ? '¡hoy!' : `${daysLeft} día${daysLeft !== 1 ? 's' : ''}`}</div>
+        <div style={{fontSize:13,color:'var(--text-mid)',marginTop:2}}>{next.name} · {next.destination}</div>
+      </div>
+      <div style={{marginLeft:'auto',fontSize:18,color:'#b87333',opacity:0.6}}>›</div>
+    </div>
+  )
+})()}
+
             {/* Hero — solo si hay viajes */}
             {trips.length > 0 && (
               <div className="fade-up" style={{ marginBottom: 40, borderBottom: '1px solid var(--border)', paddingBottom: 32 }}>

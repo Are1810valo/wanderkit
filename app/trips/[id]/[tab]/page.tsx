@@ -843,6 +843,7 @@ function TabSummary({ trip, items }: any) {
         <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:44,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip?.name}</div>
         <div style={{fontSize:14,color:'var(--text-mid)',marginTop:8}}>{trip?.destination} · {trip?.start_date} → {trip?.end_date}</div>
         <button onClick={()=>window.print()} style={{marginTop:18,padding:'9px 20px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'inline-flex',alignItems:'center',gap:6}}>🖨️ Exportar PDF</button>
+        <button onClick={()=>{navigator.clipboard.writeText(window.location.href);toast('Link copiado','success')}} style={{marginTop:18,marginLeft:8,padding:'9px 20px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'inline-flex',alignItems:'center',gap:6}}>🔗 Compartir</button>
       </div>
       {(flIda||flReg)&&(
         <div style={{background:'var(--bg-card)',borderRadius:16,padding:'20px 24px',border:'1px solid var(--border)',marginBottom:20}}>
