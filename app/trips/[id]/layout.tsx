@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import axios from 'axios'
 import { TripProvider } from '@/lib/context/TripContext'
+import { signOut } from 'next-auth/react'
 
 const COLORS = ['#b87333','#4a7c59','#4a7fa5','#8a5aaa','#c45c5c','#3a8a7c']
 const TABS = [
@@ -55,7 +56,7 @@ function Modal({ title, onClose, children }: any) {
     return ()=>{ document.body.style.overflow='' }
   },[])
   return (
-    <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',backdropFilter:'blur(12px)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:2000,padding:'20px',overflowY:'auto'}} onClick={onClose}>
+    <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',backdropFilter:'blur(12px)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:9999,padding:'20px',paddingTop:'80px',overflowY:'auto'}} onClick={onClose}>
       <div style={{background:'var(--bg)',borderRadius:20,padding:'32px 36px',width:'100%',maxWidth:580,marginTop:'auto',marginBottom:'auto',border:'1px solid var(--border)',position:'relative'}} onClick={e=>e.stopPropagation()}>
         <button onClick={onClose} style={{position:'absolute',top:16,right:16,width:28,height:28,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--bg-cream)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'var(--text-light)'}}>✕</button>
         <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)',marginBottom:22,paddingRight:32}}>{title}</div>
@@ -311,6 +312,9 @@ export default function TripLayout({ children, params }: { children: React.React
           ))}
         </div>
         <div style={{padding:'12px 10px',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
+          <button onClick={()=>signOut()} style={{width:'100%',padding:'8px',borderRadius:8,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:11,fontWeight:500,color:'rgba(255,255,255,0.3)',background:'transparent',border:'none',marginBottom:6,display:'flex',alignItems:'center',gap:6}}>
+  ↪ Cerrar sesión
+</button>
           <button onClick={()=>router.push('/?new=1')} style={{width:'100%',padding:'10px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,color:'#b87333',background:'rgba(184,115,51,0.1)',border:'1.5px solid rgba(184,115,51,0.28)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
             ＋ Nuevo viaje
           </button>
