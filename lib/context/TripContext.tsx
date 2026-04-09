@@ -26,11 +26,11 @@ export function TripProvider({ tripId, children, userRole = 'owner' }: { tripId:
   const [loading, setLoading] = useState(true)
   const cache = useRef<any>(null)
   const lastFetch = useRef<number>(0)
-  const TTL = 30_000 // 30 segundos de cache
+  const TTL = 30_000
 
   const fetchItems = useCallback(async (force = false) => {
+    if (!tripId) return
     const now = Date.now()
-    // Si hay cache válido y no se fuerza, usar cache
     if (!force && cache.current && now - lastFetch.current < TTL) {
       setItems(cache.current)
       setLoading(false)
@@ -49,15 +49,14 @@ export function TripProvider({ tripId, children, userRole = 'owner' }: { tripId:
     }
   }, [tripId])
 
-  useEffect(() => { fetchItems() }, [fetchItems])
+  useEffect(() => { if (tripId) fetchItems() }, [fetchItems, tripId])
 
   const addItem = useCallback(async (type: string, data: any) => {
     await axios.post(`/api/${type}`, { ...data, tripId })
-    await fetchItems(true) // forzar refetch tras mutación
+    await fetchItems(true)
   }, [tripId, fetchItems])
 
   const updateItem = useCallback(async (type: string, data: any) => {
-    // Optimistic update en cache local
     if (cache.current) {
       const key = type as keyof typeof cache.current
       const updated = {
@@ -72,13 +71,12 @@ export function TripProvider({ tripId, children, userRole = 'owner' }: { tripId:
     try {
       await axios.put(`/api/${type}`, data)
     } catch (e) {
-      await fetchItems(true) // revertir si falla
+      await fetchItems(true)
       throw e
     }
   }, [fetchItems])
 
   const deleteItem = useCallback(async (type: string, id: string) => {
-    // Optimistic delete en cache local
     if (cache.current) {
       const key = type as keyof typeof cache.current
       const updated = {
