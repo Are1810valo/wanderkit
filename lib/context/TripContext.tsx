@@ -6,6 +6,7 @@ import axios from 'axios'
 interface TripContextType {
   items: any
   loading: boolean
+  userRole: 'owner'|'escritor'|'lector'
   refetch: () => Promise<void>
   addItem: (type: string, data: any) => Promise<void>
   updateItem: (type: string, data: any) => Promise<void>
@@ -20,7 +21,7 @@ export function useTripContext() {
   return ctx
 }
 
-export function TripProvider({ tripId, children }: { tripId: string; children: React.ReactNode }) {
+export function TripProvider({ tripId, children, userRole = 'owner' }: { tripId: string; children: React.ReactNode; userRole?: 'owner'|'escritor'|'lector' }) {
   const [items, setItems] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const cache = useRef<any>(null)
@@ -98,7 +99,7 @@ export function TripProvider({ tripId, children }: { tripId: string; children: R
   }, [fetchItems])
 
   return (
-    <TripContext.Provider value={{ items, loading, refetch: () => fetchItems(true), addItem, updateItem, deleteItem }}>
+    <TripContext.Provider value={{ items, loading, userRole, refetch: () => fetchItems(true), addItem, updateItem, deleteItem }}>
       {children}
     </TripContext.Provider>
   )

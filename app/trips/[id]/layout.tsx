@@ -206,6 +206,7 @@ export default function TripLayout({ children, params }: { children: React.React
   const [showEdit, setShowEdit]       = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [loadingTrip, setLoadingTrip] = useState(true)
+  const [userRole, setUserRole] = useState<'owner'|'escritor'|'lector'>('owner')
 
   useEffect(()=>{
     const apply=()=>document.documentElement.setAttribute('data-theme',new Date().getHours()>=7&&new Date().getHours()<19?'light':'dark')
@@ -220,6 +221,12 @@ export default function TripLayout({ children, params }: { children: React.React
     setLoadingTrip(true)
     try {
       const res = await axios.get('/api/trips')
+      try {
+  const members = await axios.get(`/api/trips/${id}/members`)
+  const session = await fetch('/api/auth/session').then(r=>r.json())
+  const me = members.data.find((m:any)=>m.user_id===session?.user?.email)
+  if(me) setUserRole(me.role)
+} catch(e){}
       setAllTrips(res.data)
       setTrip(res.data.find((t:any)=>t.id===id)||null)
     } catch(e){ console.error(e) }
@@ -381,7 +388,7 @@ export default function TripLayout({ children, params }: { children: React.React
         </div>
 
         <div style={{flex:1,overflowY:'auto',background:'var(--bg)'}}>
-          <TripProvider tripId={tripId||''}>
+          <TripProvider tripId={tripId||''} userRole={userRole}>
             {children}
           </TripProvider>
         </div>

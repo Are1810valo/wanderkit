@@ -128,7 +128,7 @@ export default function TabPage() {
   const [trip, setTrip] = useState<any>(null)
 
   // Usar Context en vez de useTripItems — datos compartidos entre tabs, sin refetch al navegar
-  const { items, loading, addItem, updateItem, deleteItem } = useTripContext()
+const { items, loading, userRole, addItem, updateItem, deleteItem } = useTripContext()
 
   useEffect(()=>{
     axios.get('/api/trips')
@@ -136,9 +136,10 @@ export default function TabPage() {
       .catch(()=>toast('Error cargando datos del viaje','error'))
   },[tripId])
 
-  const add = useCallback(async(type:string,data:any)=>{ await addItem(type,data); toast('Agregado correctamente') },[addItem])
-  const upd = useCallback(async(type:string,data:any)=>{ await updateItem(type,data); toast('Guardado') },[updateItem])
-  const del = useCallback(async(type:string,id:string)=>{ await deleteItem(type,id); toast('Eliminado','info') },[deleteItem])
+  const canEdit = userRole === 'owner' || userRole === 'escritor'
+const add = useCallback(async(type:string,data:any)=>{ if(!canEdit){toast('No tienes permisos para editar','error');return}; await addItem(type,data); toast('Agregado correctamente') },[addItem,canEdit])
+const upd = useCallback(async(type:string,data:any)=>{ if(!canEdit){toast('No tienes permisos para editar','error');return}; await updateItem(type,data); toast('Guardado') },[updateItem,canEdit])
+const del = useCallback(async(type:string,id:string)=>{ if(!canEdit){toast('No tienes permisos para eliminar','error');return}; await deleteItem(type,id); toast('Eliminado','info') },[deleteItem,canEdit])
 
   return (
     <div className="tab-content-responsive fade-in" style={{padding:'32px 44px 64px'}}>
