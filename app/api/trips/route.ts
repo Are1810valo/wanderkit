@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createTables } from '@/lib/schema'
 import { z } from 'zod'
+import { getServerSession } from 'next-auth'
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
@@ -19,9 +20,18 @@ const TripSchema = z.object({
 export async function GET() {
   try {
     await createTables()
-    const result = await db.execute('SELECT * FROM trips ORDER BY created_at DESC')
+    const session = await getServerSession()
+    const email = session?.user?.email
+    if (!email) return NextResponse.json([])
+    const result = await db.execute({
+      sql: `SELECT DISTINCT t.* FROM trips t
+            LEFT JOIN trip_members tm ON t.id=tm.trip_id AND tm.user_id=? AND tm.status='activo'
+            WHERE t.owner_id=? OR tm.user_id=?
+            ORDER BY t.created_at DESC`,
+      args: [email, email, email]
+    })
     return NextResponse.json(result.rows)
-  } catch (e) {
+  } catch(e) {
     return NextResponse.json({ error: 'Error al obtener viajes' }, { status: 500 })
   }
 }
