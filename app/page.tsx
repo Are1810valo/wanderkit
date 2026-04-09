@@ -11,7 +11,6 @@ const fmtCurrency = (n: number, currency = 'USD') => {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n)
 }
 
-/* ── TOAST ── */
 type ToastType = 'success' | 'error' | 'info'
 interface ToastItem { id: number; message: string; type: ToastType; leaving?: boolean }
 let toastId = 0
@@ -29,32 +28,29 @@ function ToastContainer() {
     }, 3000)
   }, [])
   useEffect(() => { globalAddToast = addToast; return () => { globalAddToast = null } }, [addToast])
-  const icons = { success: '✓', error: '✕', info: 'ℹ' }
   return (
     <div className="toast-container no-print">
       {toasts.map(t => (
         <div key={t.id} className={`toast ${t.type}${t.leaving ? ' leaving' : ''}`}>
-          <span style={{ fontSize: 15 }}>{icons[t.type]}</span>{t.message}
+          <span style={{ fontSize: 15 }}>{t.type==='success'?'✓':t.type==='error'?'✕':'ℹ'}</span>{t.message}
         </div>
       ))}
     </div>
   )
 }
 
-/* ── ANIMATED NUMBER ── */
 function AnimatedNumber({ value, duration = 800 }: { value: number; duration?: number }) {
   const [display, setDisplay] = useState(0)
-  const frameRef = { current: undefined as number | undefined }
   useEffect(() => {
+    let frame: number
     const start = performance.now()
     const animate = (now: number) => {
       const progress = Math.min((now - start) / duration, 1)
-      const ease = 1 - Math.pow(1 - progress, 3)
-      setDisplay(Math.round(value * ease))
-      if (progress < 1) frameRef.current = requestAnimationFrame(animate)
+      setDisplay(Math.round(value * (1 - Math.pow(1 - progress, 3))))
+      if (progress < 1) frame = requestAnimationFrame(animate)
     }
-    frameRef.current = requestAnimationFrame(animate)
-    return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current) }
+    frame = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(frame)
   }, [value, duration])
   return <>{display}</>
 }
@@ -103,13 +99,13 @@ export default function Home() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
       <ToastContainer />
 
-      {/* Sidebar overlay mobile */}
+      {/* Overlay mobile */}
       {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 499, backdropFilter: 'blur(4px)' }} />
+        <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 499, backdropFilter: 'blur(4px)' }} />
       )}
 
-      {/* ── SIDEBAR ── */}
-      <div className={`sidebar-responsive${sidebarOpen ? ' open' : ''}`} style={{ width: 260, minWidth: 260, display: 'flex', flexDirection: 'column', background: 'var(--bg-sidebar)', borderRight: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', position: 'relative', zIndex: 10, flexShrink: 0 }}>
+      {/* SIDEBAR */}
+      <div className={`sidebar-responsive${sidebarOpen ? ' open' : ''}`} style={{ width: 260, minWidth: 260, display: 'flex', flexDirection: 'column', background: 'var(--bg-sidebar)', borderRight: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', position: 'relative', zIndex: 500, flexShrink: 0 }}>
         <div style={{ padding: '28px 22px 22px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 26, fontWeight: 300, color: '#f0ece3', letterSpacing: '0.02em', lineHeight: 1 }}>
             Wander<em style={{ color: '#b87333', fontStyle: 'italic' }}>Kit</em>
@@ -123,11 +119,10 @@ export default function Home() {
               {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 52, borderRadius: 10 }} />)}
             </div>
           ) : trips.map((t, i) => (
-            <div key={t.id} onClick={() => router.push(`/trips/${t.id}`)}
+            <div key={t.id} onClick={() => { router.push(`/trips/${t.id}`); setSidebarOpen(false) }}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', margin: '2px 10px', borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s', background: 'rgba(255,255,255,0.02)', border: '1px solid transparent' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-            >
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: tripColors[t.color_idx ?? i % tripColors.length], flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 500, color: '#e8e2d8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
@@ -138,18 +133,18 @@ export default function Home() {
           ))}
         </div>
         <div style={{ padding: '14px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-  <button onClick={()=>signOut({callbackUrl:'/login'})} style={{width:'100%',padding:'10px 12px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',marginBottom:8,display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}}
-    onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.7)'}}
-    onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.4)'}}>
-    <span style={{fontSize:14}}>↪</span> Cerrar sesión
-  </button>
-  <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ width: '100%', padding: '11px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600, color: '#b87333', background: 'rgba(184,115,51,0.1)', border: '1.5px solid rgba(184,115,51,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-    ＋ Nuevo viaje
-  </button>
-</div>
+          <button onClick={() => signOut({ callbackUrl: '/login' })} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans,sans-serif', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)' }}>
+            <span style={{ fontSize: 14 }}>↪</span> Cerrar sesión
+          </button>
+          <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ width: '100%', padding: '11px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600, color: '#b87333', background: 'rgba(184,115,51,0.1)', border: '1.5px solid rgba(184,115,51,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            ＋ Nuevo viaje
+          </button>
+        </div>
       </div>
 
-      {/* ── MAIN ── */}
+      {/* MAIN */}
       <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
         {/* Mobile header */}
         <div className="mobile-header no-print" style={{ display: 'none', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'var(--bg-sidebar)', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'sticky', top: 0, zIndex: 200 }}>
@@ -160,7 +155,6 @@ export default function Home() {
           <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ background: 'rgba(184,115,51,0.15)', border: '1px solid rgba(184,115,51,0.3)', borderRadius: 8, padding: '6px 12px', color: '#b87333', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>＋</button>
         </div>
 
-        {/* Dashboard content */}
         {loading ? (
           <div style={{ padding: '52px 56px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 40 }}>
@@ -172,32 +166,35 @@ export default function Home() {
           </div>
         ) : (
           <div className="responsive-padding" style={{ padding: '52px 56px 64px' }}>
-            {/* Hero */}
-            <div className="fade-up" style={{ marginBottom: 52, borderBottom: '1px solid var(--border)', paddingBottom: 40 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-light)', marginBottom: 16 }}>Bienvenido a WanderKit</div>
-              <div className="responsive-text-sm" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 64, fontWeight: 300, color: 'var(--navy)', lineHeight: 1, letterSpacing: '-0.02em' }}>
-                Tus <em style={{ color: '#b87333', fontStyle: 'italic' }}>aventuras,</em><br />organizadas.
-              </div>
-              <div style={{ fontSize: 16, color: 'var(--text-mid)', marginTop: 16, fontWeight: 300, maxWidth: 480, lineHeight: 1.6 }}>Planifica cada detalle, registra lo que viviste y recuerda cada viaje para siempre.</div>
-              <button className="btn-press fade-up-1" onClick={() => setShowNewTrip(true)} style={{ marginTop: 28, padding: '14px 28px', background: '#b87333', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 20px rgba(184,115,51,0.35)' }}>＋ Nuevo viaje</button>
-            </div>
 
-            {/* Stats */}
-            <div className="fade-up-2 responsive-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, marginBottom: 52, background: 'var(--border)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
-              {[{ num: trips.length, label: 'Total viajes' }, { num: ongoing, label: 'En curso' }, { num: upcoming, label: 'Planificados' }, { num: finished, label: 'Finalizados' }].map((s, i) => (
-                <div key={i} style={{ background: 'var(--bg-card)', padding: '24px 28px' }}>
-                  <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 48, fontWeight: 300, color: 'var(--navy)', lineHeight: 1 }}><AnimatedNumber value={s.num} /></div>
-                  <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 6, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.label}</div>
+            {/* Hero — solo si hay viajes */}
+            {trips.length > 0 && (
+              <div className="fade-up" style={{ marginBottom: 40, borderBottom: '1px solid var(--border)', paddingBottom: 32 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-light)', marginBottom: 12 }}>WanderKit</div>
+                <div className="responsive-text-sm" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 48, fontWeight: 300, color: 'var(--navy)', lineHeight: 1 }}>
+                  Tus <em style={{ color: '#b87333', fontStyle: 'italic' }}>aventuras,</em> organizadas.
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
 
-            {/* Trips */}
+            {/* Stats — solo si hay viajes */}
+            {trips.length > 0 && (
+              <div className="fade-up-2 responsive-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, marginBottom: 40, background: 'var(--border)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                {[{ num: trips.length, label: 'Total' }, { num: ongoing, label: 'En curso' }, { num: upcoming, label: 'Planificados' }, { num: finished, label: 'Finalizados' }].map((s, i) => (
+                  <div key={i} style={{ background: 'var(--bg-card)', padding: '20px 24px' }}>
+                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 40, fontWeight: 300, color: 'var(--navy)', lineHeight: 1 }}><AnimatedNumber value={s.num} /></div>
+                    <div style={{ fontSize: 10, color: 'var(--text-light)', marginTop: 4, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Trips grid */}
             {trips.length > 0 && (
               <>
-                <div className="fade-up-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                <div className="fade-up-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 32, fontWeight: 400, color: 'var(--navy)' }}>Mis viajes</div>
+                    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 28, fontWeight: 400, color: 'var(--navy)' }}>Mis viajes</div>
                     <div style={{ fontSize: 12, color: 'var(--text-light)' }}>{trips.length} viaje{trips.length !== 1 ? 's' : ''}</div>
                   </div>
                   {selected.length > 0 && (
@@ -210,8 +207,7 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 22 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 20 }}>
                   {trips.map((t, i) => {
                     const sc = statusConfig[t.status] || statusConfig.planificado
                     const color = tripColors[t.color_idx ?? i % tripColors.length]
@@ -220,19 +216,17 @@ export default function Home() {
                       <div key={t.id} className={`card-hover fade-up-${Math.min(i + 3, 6)}`}
                         onClick={() => !selected.length && router.push(`/trips/${t.id}`)}
                         style={{ background: 'var(--bg-card)', borderRadius: 20, overflow: 'hidden', border: isSelected ? '2px solid #b87333' : '1px solid var(--border)', boxShadow: isSelected ? '0 0 0 3px rgba(184,115,51,0.15)' : 'var(--shadow-card)', position: 'relative', cursor: selected.length ? 'default' : 'pointer' }}>
-                        {/* Checkbox */}
-                        <div onClick={(e) => toggleSelect(e, t.id)}
-                          style={{ position: 'absolute', top: 12, left: 12, width: 22, height: 22, borderRadius: 6, border: `2px solid ${isSelected ? '#b87333' : 'rgba(255,255,255,0.8)'}`, background: isSelected ? '#b87333' : 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', transition: 'all 0.15s' }}>
+                        <div onClick={(e) => toggleSelect(e, t.id)} style={{ position: 'absolute', top: 12, left: 12, width: 22, height: 22, borderRadius: 6, border: `2px solid ${isSelected ? '#b87333' : 'rgba(255,255,255,0.8)'}`, background: isSelected ? '#b87333' : 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', transition: 'all 0.15s' }}>
                           {isSelected && <span style={{ color: 'white', fontSize: 13, fontWeight: 700, lineHeight: 1 }}>✓</span>}
                         </div>
-                        <div style={{ height: 120, padding: '18px 22px', background: `linear-gradient(135deg, ${color}12, ${color}25)`, borderBottom: `3px solid ${color}`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 36, opacity: 0.4 }}>🌍</span>
-                          <span style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.color }}>{sc.label}</span>
+                        <div style={{ height: 100, padding: '16px 20px', background: `linear-gradient(135deg, ${color}12, ${color}25)`, borderBottom: `3px solid ${color}`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 32, opacity: 0.4 }}>🌍</span>
+                          <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.color }}>{sc.label}</span>
                         </div>
-                        <div style={{ padding: '20px 22px 22px' }}>
-                          <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 24, fontWeight: 400, color: 'var(--navy)', lineHeight: 1.2 }}>{t.name}</div>
-                          <div style={{ fontSize: 13, color: 'var(--text-mid)', marginTop: 5 }}>📍 {t.destination}</div>
-                          <div style={{ display: 'flex', gap: 18, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-light)' }}>
+                        <div style={{ padding: '18px 20px 20px' }}>
+                          <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 22, fontWeight: 400, color: 'var(--navy)', lineHeight: 1.2 }}>{t.name}</div>
+                          <div style={{ fontSize: 13, color: 'var(--text-mid)', marginTop: 4 }}>📍 {t.destination}</div>
+                          <div style={{ display: 'flex', gap: 16, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-light)' }}>
                             <span>📅 {t.start_date || '—'}</span>
                             <span>💰 {fmtCurrency(t.budget, t.currency)}</span>
                           </div>
@@ -244,20 +238,17 @@ export default function Home() {
               </>
             )}
 
+            {/* Onboarding — solo si NO hay viajes */}
             {trips.length === 0 && (
               <div className="fade-up-3" style={{ textAlign: 'center', padding: '80px 20px', background: 'var(--bg-card)', borderRadius: 20, border: '1px dashed var(--border)' }}>
-                <div className="fade-up-3" style={{ textAlign: 'center', padding: '80px 20px', background: 'var(--bg-card)', borderRadius: 20, border: '1px dashed var(--border)' }}>
-  <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.15 }}>✈️</div>
-  <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 36, color: 'var(--navy)', fontWeight: 300, marginBottom: 12 }}>Tu próxima aventura te espera</div>
-  <div style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 32, maxWidth: 400, margin: '0 auto 32px', lineHeight: 1.6 }}>Crea tu primer viaje y empieza a planificar vuelos, gastos, itinerario y más.</div>
-  <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ padding: '14px 32px', background: '#b87333', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 20px rgba(184,115,51,0.35)', marginBottom: 24 }}>＋ Crear primer viaje</button>
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, maxWidth: 500, margin: '0 auto' }}>
-    {[{icon:'✈️',t:'Vuelos',d:'Ida, regreso y escalas'},{icon:'💰',t:'Gastos',d:'Plan vs real'},{icon:'📍',t:'Lugares',d:'Con mapa integrado'},{icon:'📋',t:'Itinerario',d:'Día a día'},{icon:'📂',t:'Documentos',d:'Reservas y pasajes'},{icon:'📝',t:'Diario',d:'Recuerda cada momento'}]
-      .map((f,i)=><div key={i} style={{padding:'12px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)'}}><div style={{fontSize:20,marginBottom:4}}>{f.icon}</div><div style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{f.t}</div><div style={{fontSize:11,color:'var(--text-light)'}}>{f.d}</div></div>)}
-  </div>
-</div>
-                <div style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 28 }}>Crea tu primer viaje para comenzar</div>
-                <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ padding: '12px 28px', background: '#b87333', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>＋ Crear primer viaje</button>
+                <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.15 }}>✈️</div>
+                <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 36, color: 'var(--navy)', fontWeight: 300, marginBottom: 12 }}>Tu próxima aventura te espera</div>
+                <div style={{ fontSize: 14, color: 'var(--text-light)', marginBottom: 32, maxWidth: 400, margin: '0 auto 32px', lineHeight: 1.6 }}>Crea tu primer viaje y empieza a planificar vuelos, gastos, itinerario y más.</div>
+                <button className="btn-press" onClick={() => setShowNewTrip(true)} style={{ padding: '14px 32px', background: '#b87333', color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 20px rgba(184,115,51,0.35)', marginBottom: 32 }}>＋ Crear primer viaje</button>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, maxWidth: 480, margin: '0 auto' }}>
+                  {[{icon:'✈️',t:'Vuelos',d:'Ida, regreso y escalas'},{icon:'💰',t:'Gastos',d:'Plan vs real'},{icon:'📍',t:'Lugares',d:'Con mapa integrado'},{icon:'📋',t:'Itinerario',d:'Día a día'},{icon:'📂',t:'Documentos',d:'Reservas y pasajes'},{icon:'📝',t:'Diario',d:'Recuerda cada momento'}]
+                    .map((f,i)=><div key={i} style={{padding:'14px 10px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)'}}><div style={{fontSize:22,marginBottom:6}}>{f.icon}</div><div style={{fontSize:12,fontWeight:600,color:'var(--text)',marginBottom:2}}>{f.t}</div><div style={{fontSize:11,color:'var(--text-light)'}}>{f.d}</div></div>)}
+                </div>
               </div>
             )}
           </div>
@@ -269,7 +260,6 @@ export default function Home() {
   )
 }
 
-/* ── NEW TRIP MODAL ── */
 function NewTripModal({ onClose, onSave }: any) {
   const [f, setF] = useState({ name: '', destination: '', startDate: '', endDate: '', budget: '', currency: 'USD', status: 'planificado', colorIdx: 0 })
   const s = (k: string, v: any) => setF(p => ({ ...p, [k]: v }))
@@ -305,17 +295,17 @@ function NewTripModal({ onClose, onSave }: any) {
   )
 }
 
-/* ── SHARED ── */
 function Modal({ title, onClose, children }: any) {
   return (
-   <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,14,28,0.7)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999, padding: '20px', paddingTop: '60px', overflowY: 'auto' }} onClick={onClose}>
-      <div style={{ background: 'var(--bg)', borderRadius: 20, padding: '36px 40px', width: '100%', maxWidth: 540, marginBottom: 'auto', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}> 
-    <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 28, fontWeight: 300, color: 'var(--navy)', marginBottom: 26 }}>{title}</div>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,14,28,0.7)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 9999, padding: '20px', paddingTop: '60px', overflowY: 'auto' }} onClick={onClose}>
+      <div style={{ background: 'var(--bg)', borderRadius: 20, padding: '36px 40px', width: '100%', maxWidth: 540, marginBottom: 'auto', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 28, fontWeight: 300, color: 'var(--navy)', marginBottom: 26 }}>{title}</div>
         {children}
       </div>
     </div>
   )
 }
+
 function FG({ label, children }: any) {
   return (
     <div style={{ marginBottom: 16 }}>
@@ -324,6 +314,7 @@ function FG({ label, children }: any) {
     </div>
   )
 }
+
 function Btn2({ onClick, primary, children }: any) {
   return (
     <button className="btn-press" onClick={onClick} style={{ padding: primary ? '11px 22px' : '11px 18px', background: primary ? '#b87333' : 'transparent', color: primary ? 'white' : 'var(--text-mid)', border: primary ? 'none' : '1px solid var(--border)', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: primary ? '0 4px 16px rgba(184,115,51,0.28)' : 'none', transition: 'all 0.15s', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
