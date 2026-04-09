@@ -110,7 +110,8 @@ export default function Home() {
           <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 26, fontWeight: 300, color: '#f0ece3', letterSpacing: '0.02em', lineHeight: 1 }}>
             Wander<em style={{ color: '#b87333', fontStyle: 'italic' }}>Kit</em>
           </div>
-          <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', marginTop: 6 }}>Gestor de Viajes</div>
+         <div>Gestor de Viajes</div>
+          <button onClick={()=>setSidebarOpen(false)} style={{position:'absolute',top:16,right:16,width:32,height:32,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.06)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,color:'rgba(255,255,255,0.5)'}}>✕</button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0' }}>
           <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.18)', padding: '0 22px', marginBottom: 8 }}>Mis Viajes</div>
