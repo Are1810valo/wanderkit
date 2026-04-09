@@ -25,7 +25,8 @@ const handler = NextAuth({
     },
     async session({ session }) { return session }
   },
-  pages: { signIn: '/login' }
+  session: { maxAge: 8 * 60 * 60 },
+pages: { signIn: '/login' }
 })
 
 export { handler as GET, handler as POST }
