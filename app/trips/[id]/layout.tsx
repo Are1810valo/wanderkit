@@ -395,6 +395,7 @@ export default function TripLayout({ children, params }: { children: React.React
       </div>
 
       {showEdit&&trip&&<EditTripModal trip={trip} onClose={()=>setShowEdit(false)} onSave={handleSaveTrip} />}
+        {showInvite&&trip&&<InviteModal tripId={tripId} onClose={()=>setShowInvite(false)} />}
     </div>
   )
 }
