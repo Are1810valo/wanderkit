@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     await db.execute({
       sql: `INSERT INTO itinerary (id, trip_id, day, name, time, time_real, type, status, note)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [id, body.tripId, body.day, body.name, body.time, body.timeReal, body.type, body.status, body.note]
+      args: [id, body.tripId, body.day, body.name, body.time||null, body.time_real||body.timeReal||null, body.type, body.status, body.note||null]
     })
     return NextResponse.json({ id })
   } catch (error) {
@@ -23,7 +23,7 @@ export async function PUT(request: Request) {
     const body = await request.json()
     await db.execute({
       sql: `UPDATE itinerary SET day=?, name=?, time=?, time_real=?, type=?, status=?, note=? WHERE id=?`,
-      args: [body.day, body.name, body.time, body.timeReal, body.type, body.status, body.note, body.id]
+      args: [body.day, body.name, body.time||null, body.time_real||body.timeReal||null, body.type, body.status, body.note||null, body.id]
     })
     return NextResponse.json({ success: true })
   } catch (error) {
