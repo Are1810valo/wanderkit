@@ -134,6 +134,67 @@ function EditTripModal({ trip, onClose, onSave }: any) {
   )
 }
 
+function InviteModal({ tripId, onClose }: any) {
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState('lector')
+  const [saving, setSaving] = useState(false)
+  const [link, setLink] = useState('')
+  const [error, setError] = useState('')
+
+  const handleInvite = async () => {
+    if (!email.trim()) { setError('El email es requerido'); return }
+    setSaving(true); setError('')
+    try {
+      const res = await axios.post('/api/invitations', { tripId, email: email.trim(), role })
+      setLink(res.data.inviteUrl)
+    } catch(e: any) {
+      setError(e.response?.data?.error || 'Error al generar invitación')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <Modal title="Invitar al viaje" onClose={onClose}>
+      {!link ? (
+        <>
+          <FG label="Email del invitado">
+            <input className="form-input" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&e.preventDefault()} placeholder="amigo@gmail.com" autoFocus />
+          </FG>
+          <FG label="Rol">
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              {[['lector','👁 Lector','Solo puede ver el viaje'],['escritor','✏️ Escritor','Puede editar el viaje']].map(([v,l,d])=>(
+                <div key={v} onClick={()=>setRole(v)} style={{padding:'12px 14px',borderRadius:12,border:`1.5px solid ${role===v?'#b87333':'var(--border)'}`,background:role===v?'rgba(184,115,51,0.06)':'transparent',cursor:'pointer',transition:'all 0.15s'}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:3}}>{l}</div>
+                  <div style={{fontSize:11,color:'var(--text-light)'}}>{d}</div>
+                </div>
+              ))}
+            </div>
+          </FG>
+          {error&&<div style={{padding:'10px 14px',background:'rgba(196,92,92,0.08)',border:'1px solid rgba(196,92,92,0.2)',borderRadius:10,fontSize:13,color:'#c45c5c',marginBottom:14}}>{error}</div>}
+          <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}>
+            <button onClick={onClose} style={{padding:'10px 18px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>Cancelar</button>
+            <button onClick={handleInvite} disabled={saving} style={{padding:'10px 22px',background:saving?'rgba(184,115,51,0.5)':'#b87333',color:'white',border:'none',borderRadius:10,fontSize:13,fontWeight:600,cursor:saving?'not-allowed':'pointer',fontFamily:'DM Sans,sans-serif'}}>
+              {saving?'⏳ Generando...':'Generar link'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{padding:'16px',background:'rgba(74,124,89,0.06)',border:'1px solid rgba(74,124,89,0.2)',borderRadius:12,marginBottom:20}}>
+            <div style={{fontSize:12,fontWeight:600,color:'#4a7c59',marginBottom:8}}>✅ Link generado</div>
+            <div style={{fontSize:12,color:'var(--text-mid)',wordBreak:'break-all',lineHeight:1.5}}>{link}</div>
+          </div>
+          <button onClick={()=>{navigator.clipboard.writeText(link);toast('Link copiado','success')}} style={{width:'100%',padding:'12px',background:'#b87333',color:'white',border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginBottom:10}}>
+            📋 Copiar link
+          </button>
+          <button onClick={onClose} style={{width:'100%',padding:'12px',background:'transparent',border:'1px solid var(--border)',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>
+            Cerrar
+          </button>
+        </>
+      )}
+    </Modal>
+  )
+}
+
 export default function TripLayout({ children, params }: { children: React.ReactNode, params: Promise<{id:string}> }) {
   const router    = useRouter()
   const pathname  = usePathname()
@@ -143,6 +204,7 @@ export default function TripLayout({ children, params }: { children: React.React
   const [tripId, setTripId]           = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showEdit, setShowEdit]       = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
   const [loadingTrip, setLoadingTrip] = useState(true)
 
   useEffect(()=>{
@@ -291,6 +353,7 @@ export default function TripLayout({ children, params }: { children: React.React
                   ✏️ Editar
                 </button>
                 <button onClick={()=>window.print()} style={{padding:'9px 12px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>🖨️</button>
+                <button onClick={()=>setShowInvite(true)} style={{padding:'9px 16px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'flex',alignItems:'center',gap:6,transition:'all 0.15s'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>👥 Invitar</button>
                 <button onClick={handleDelete} style={{padding:'9px 12px',background:'transparent',border:'1px solid rgba(196,92,92,0.35)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'#c45c5c',transition:'all 0.15s'}}
                   onMouseEnter={e=>e.currentTarget.style.background='rgba(196,92,92,0.08)'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
