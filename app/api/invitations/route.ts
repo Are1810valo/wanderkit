@@ -60,6 +60,16 @@ export async function POST(request: Request) {
     })
 
     const inviteUrl = `${process.env.NEXTAUTH_URL}/invite?token=${token}`
+    try {
+      const { Resend } = await import('resend')
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      await resend.emails.send({
+        from: 'WanderKit <onboarding@resend.dev>',
+        to: email,
+        subject: 'Te invitaron a un viaje en WanderKit',
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px"><h1 style="font-size:28px;font-weight:300;color:#1a2744">WanderKit</h1><p style="color:#4a4a6a;font-size:15px;margin-bottom:24px">Te invitaron a unirte a un viaje como <strong>${role}</strong>.</p><a href="${inviteUrl}" style="display:inline-block;padding:14px 28px;background:#b87333;color:white;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px">Ver invitación</a><p style="color:#8a8aaa;font-size:12px;margin-top:24px">O copia este link: ${inviteUrl}</p></div>`
+      })
+    } catch(emailErr){ console.error('Email error:',emailErr) }
     return NextResponse.json({ success: true, inviteUrl, token })
   } catch(e) { return NextResponse.json({ error: 'Error al crear invitación' }, { status: 500 }) }
 }
