@@ -436,11 +436,11 @@ export default function TripLayout({ children, params }: { children: React.React
             </div>
           )}
 
-          <TabsWithCounts activeTab={activeTab} onTab={handleTab} tabsRef={tabsRef} />
-        </div>
+          </div>
 
         <div style={{flex:1,overflowY:'auto',background:'var(--bg)'}}>
           <TripProvider tripId={tripId||''} userRole={userRole}>
+            <TabsWithCounts activeTab={activeTab} onTab={handleTab} tabsRef={tabsRef} />
             {children}
           </TripProvider>
         </div>
