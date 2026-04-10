@@ -621,54 +621,59 @@ function TabDocuments({ trip, items, add, upd, del, isReader }: any) {
   const [editing,setEditing] = useState<any>(null)
   const docs = items?.documents||[]
   const DI: Record<string,string> = {vuelo:'✈️',hotel:'🏨',seguro:'🛡️',tour:'🎟️',visa:'📋',otro:'📄'}
-  const hasIt = docs.filter((d:any)=>d.has_it).length
-  const packed = docs.filter((d:any)=>d.packed).length
+  const tengo = docs.filter((d:any)=>d.has_it||d.packed).length
+  const maleta = docs.filter((d:any)=>d.packed).length
+
+  const nextState = (d:any) => {
+    if(!d.has_it&&!d.packed) return upd('documents',{...d,has_it:1,packed:0})
+    if(d.has_it&&!d.packed) return upd('documents',{...d,has_it:1,packed:1})
+    return upd('documents',{...d,has_it:0,packed:0})
+  }
+
+  const stateLabel = (d:any) => {
+    if(d.packed) return {icon:'🧳',label:'En maleta',bg:'rgba(184,115,51,0.1)',color:'#b87333'}
+    if(d.has_it) return {icon:'✅',label:'Lo tengo',bg:'rgba(74,124,89,0.1)',color:'#4a7c59'}
+    return {icon:'⬜',label:'Sin marcar',bg:'var(--bg-cream)',color:'var(--text-light)'}
+  }
 
   return (
     <div className="fade-in">
       {docs.length>0&&(
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
           <div style={{background:'var(--bg-card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',textAlign:'center'}}>
-            <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6}}>Tengo</div>
-            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:28,fontWeight:300,color:'#4a7c59'}}>{hasIt}<span style={{fontSize:16,color:'var(--text-light)'}}>/{docs.length}</span></div>
+            <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6}}>Lo tengo</div>
+            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:28,fontWeight:300,color:'#4a7c59'}}>{tengo}<span style={{fontSize:16,color:'var(--text-light)'}}>/{docs.length}</span></div>
           </div>
           <div style={{background:'var(--bg-card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',textAlign:'center'}}>
             <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6}}>En maleta</div>
-            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:28,fontWeight:300,color:'#b87333'}}>{packed}<span style={{fontSize:16,color:'var(--text-light)'}}>/{docs.length}</span></div>
+            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:28,fontWeight:300,color:'#b87333'}}>{maleta}<span style={{fontSize:16,color:'var(--text-light)'}}>/{docs.length}</span></div>
           </div>
         </div>
       )}
       {!isReader&&<div style={{display:'flex',justifyContent:'flex-end',marginBottom:18}}><Btn onClick={()=>{setEditing(null);setModal(true)}} primary>＋ Documento</Btn></div>}
       {docs.length===0&&<Empty icon="📂" title="Sin documentos" sub={isReader?'El organizador aún no ha agregado documentos':'Agrega links a reservas, pasajes y seguros'} />}
-      {docs.map((d:any)=>(
-        <div key={d.id} style={{background:'var(--bg-card)',borderRadius:14,border:'1px solid var(--border)',marginBottom:8,overflow:'hidden'}}>
-          <div className="row-hover" style={{display:'flex',alignItems:'center',gap:12,padding:'14px 18px',flexWrap:'wrap'}}>
-            <div style={{width:40,height:40,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,background:'var(--bg-cream)',flexShrink:0}}>{DI[d.type]||'📄'}</div>
-            <div style={{flex:1,minWidth:100}}>
-              <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{d.name}</div>
-              <div style={{fontSize:11,color:'var(--text-light)',marginTop:1,textTransform:'capitalize'}}>{d.type}</div>
-              {d.notes&&<div style={{fontSize:12,color:'var(--text-mid)',marginTop:2}}>{d.notes}</div>}
-              {d.url&&<a href={d.url} target="_blank" rel="noreferrer" style={{fontSize:12,color:'#4a7fa5',textDecoration:'none',marginTop:3,display:'inline-flex',alignItems:'center',gap:4,fontWeight:500}}>🔗 Abrir enlace</a>}
-            </div>
-            <span style={{padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:600,background:d.status==='activo'?'rgba(74,124,89,0.1)':'rgba(138,138,170,0.08)',color:d.status==='activo'?'#4a7c59':'var(--text-light)'}}>{d.status}</span>
-            {!isReader&&<div style={{display:'flex',gap:5}}><IBtn onClick={()=>{setEditing(d);setModal(true)}}>✏️</IBtn><IBtn onClick={()=>del('documents',d.id)} color="#c45c5c">🗑</IBtn></div>}
-          </div>
-          <div style={{display:'flex',borderTop:'1px solid var(--border)'}}>
-            <div onClick={()=>upd('documents',{...d,has_it:d.has_it?0:1})} style={{flex:1,padding:'10px 16px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:d.has_it?'rgba(74,124,89,0.06)':'transparent',transition:'all 0.15s',borderRight:'1px solid var(--border)'}}>
-              <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${d.has_it?'#4a7c59':'var(--border)'}`,background:d.has_it?'#4a7c59':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s'}}>
-                {d.has_it?<span style={{color:'white',fontSize:10,fontWeight:700}}>✓</span>:null}
+      {docs.map((d:any)=>{
+        const st=stateLabel(d)
+        return (
+          <div key={d.id} style={{background:'var(--bg-card)',borderRadius:14,border:'1px solid var(--border)',marginBottom:8,overflow:'hidden'}}>
+            <div className="row-hover" style={{display:'flex',alignItems:'center',gap:12,padding:'14px 18px',flexWrap:'wrap'}}>
+              <div style={{width:40,height:40,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,background:'var(--bg-cream)',flexShrink:0}}>{DI[d.type]||'📄'}</div>
+              <div style={{flex:1,minWidth:100}}>
+                <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{d.name}</div>
+                <div style={{fontSize:11,color:'var(--text-light)',marginTop:1,textTransform:'capitalize'}}>{d.type}</div>
+                {d.notes&&<div style={{fontSize:12,color:'var(--text-mid)',marginTop:2}}>{d.notes}</div>}
+                {d.url&&<a href={d.url} target="_blank" rel="noreferrer" style={{fontSize:12,color:'#4a7fa5',textDecoration:'none',marginTop:3,display:'inline-flex',alignItems:'center',gap:4,fontWeight:500}}>🔗 Abrir enlace</a>}
               </div>
-              <span style={{fontSize:12,fontWeight:500,color:d.has_it?'#4a7c59':'var(--text-light)'}}>Lo tengo</span>
+              {!isReader&&<div style={{display:'flex',gap:5}}><IBtn onClick={()=>{setEditing(d);setModal(true)}}>✏️</IBtn><IBtn onClick={()=>del('documents',d.id)} color="#c45c5c">🗑</IBtn></div>}
             </div>
-            <div onClick={()=>upd('documents',{...d,packed:d.packed?0:1})} style={{flex:1,padding:'10px 16px',display:'flex',alignItems:'center',gap:8,cursor:'pointer',background:d.packed?'rgba(184,115,51,0.06)':'transparent',transition:'all 0.15s'}}>
-              <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${d.packed?'#b87333':'var(--border)'}`,background:d.packed?'#b87333':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s'}}>
-                {d.packed?<span style={{color:'white',fontSize:10,fontWeight:700}}>✓</span>:null}
-              </div>
-              <span style={{fontSize:12,fontWeight:500,color:d.packed?'#b87333':'var(--text-light)'}}>En maleta</span>
+            <div onClick={()=>nextState(d)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 18px',borderTop:'1px solid var(--border)',cursor:'pointer',background:st.bg,transition:'all 0.2s'}}>
+              <span style={{fontSize:16}}>{st.icon}</span>
+              <span style={{fontSize:12,fontWeight:600,color:st.color}}>{st.label}</span>
+              <span style={{fontSize:11,color:'var(--text-light)',marginLeft:'auto'}}>click para cambiar →</span>
             </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
       {modal&&<Modal title={editing?'Editar documento':'Nuevo documento'} onClose={()=>{setModal(false);setEditing(null)}}><DocForm doc={editing} onSave={async(data:any)=>{editing?await upd('documents',{...editing,...data}):await add('documents',data);setModal(false);setEditing(null)}} /></Modal>}
     </div>
   )
