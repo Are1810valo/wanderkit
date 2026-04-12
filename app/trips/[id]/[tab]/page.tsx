@@ -124,7 +124,9 @@ export default function TabPage() {
   },[tripId])
 
   const isReader = userRole === 'lector'
-  const add = useCallback(async(type:string,data:any)=>{ await addItem(type,data); toast('Agregado correctamente') },[addItem])
+  const [userEmail, setUserEmail] = useState('')
+useEffect(()=>{ fetch('/api/auth/session').then(r=>r.json()).then(s=>setUserEmail(s?.user?.email||'')) },[])
+  const add = useCallback(async(type:string,data:any)=>{ await addItem(type,{...data,created_by:userEmail}); toast('Agregado correctamente') },[addItem,userEmail])
   const upd = useCallback(async(type:string,data:any)=>{ await updateItem(type,data); toast('Guardado') },[updateItem])
   const del = useCallback(async(type:string,id:string)=>{ await deleteItem(type,id); toast('Eliminado','info') },[deleteItem])
 
@@ -520,7 +522,7 @@ function TabExpenses({ trip, items, add, upd, del, isReader }: any) {
 }
 
 function ExpenseForm({ exp, currency, onSave }: any) {
-  const [f,setF] = useState({name:exp?.name||'',category:exp?.category||'otros',estimated:exp?.estimated??'',real:exp?.real??'',persons:exp?.persons||1,paidBy:exp?.paid_by||''})
+  const [f,setF] = useState({name:exp?.name||'',category:exp?.category||'otros',estimated:exp?.estimated??'',real:exp?.real??'',persons:exp?.persons||1,paidBy:exp?.paid_by||'',visibility:exp?.visibility||'grupal'})
   const [saving,setSaving] = useState(false)
   const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
@@ -539,6 +541,18 @@ function ExpenseForm({ exp, currency, onSave }: any) {
         <FG label="N° personas"><select className="form-input" value={f.persons} onChange={e=>s('persons',parseInt(e.target.value))}>{[1,2,3,4,5,6,7,8,9,10].map(n=><option key={n} value={n}>{n===1?'👤 1 persona':`👥 ${n} personas`}</option>)}</select></FG>
         <FG label="¿Quién pagó?"><input className="form-input" value={f.paidBy} onChange={e=>s('paidBy',e.target.value)} onKeyDown={hk} placeholder="Ej: Ezequiel" /></FG>
       </div>
+
+      <FG label="Visibilidad">
+  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+    {[['grupal','👥 Grupal','Todos lo ven'],['personal','👤 Personal','Solo tú lo ves']].map(([v,l,d])=>(
+      <div key={v} onClick={()=>s('visibility',v)} style={{padding:'10px 12px',borderRadius:10,border:`1.5px solid ${f.visibility===v?'#b87333':'var(--border)'}`,background:f.visibility===v?'rgba(184,115,51,0.06)':'transparent',cursor:'pointer',transition:'all 0.15s'}}>
+        <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:2}}>{l}</div>
+        <div style={{fontSize:11,color:'var(--text-light)'}}>{d}</div>
+      </div>
+    ))}
+  </div>
+</FG>
+
       {f.persons>1&&f.real!==''&&<div style={{padding:'8px 12px',background:'rgba(74,127,165,0.06)',border:'1px solid rgba(74,127,165,0.15)',borderRadius:10,fontSize:13,color:'var(--text-mid)',marginBottom:10}}>💡 Por persona: <strong style={{color:'var(--navy)'}}>{fmt(parseFloat(f.real as string)/f.persons,currency)}</strong></div>}
       <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>{exp?'Guardar':'Agregar'}</Btn></div>
     </div>
@@ -680,7 +694,7 @@ function TabDocuments({ trip, items, add, upd, del, isReader }: any) {
 }
 
 function DocForm({ doc, onSave }: any) {
-  const [f,setF] = useState({name:doc?.name||'',type:doc?.type||'otro',url:doc?.url||'',status:doc?.status||'activo',notes:doc?.notes||''})
+const [f,setF] = useState({name:doc?.name||'',type:doc?.type||'otro',url:doc?.url||'',status:doc?.status||'activo',notes:doc?.notes||'',visibility:doc?.visibility||'grupal'})
   const [saving,setSaving] = useState(false)
   const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
@@ -694,6 +708,18 @@ function DocForm({ doc, onSave }: any) {
         <FG label="Tipo"><select className="form-input" value={f.type} onChange={e=>s('type',e.target.value)}>{['vuelo','hotel','seguro','tour','visa','otro'].map(t=><option key={t}>{t}</option>)}</select></FG>
         <FG label="Estado"><select className="form-input" value={f.status} onChange={e=>s('status',e.target.value)}><option value="activo">✅ Activo</option><option value="usado">📌 Usado</option><option value="vencido">⚫ Vencido</option></select></FG>
       </div>
+
+<FG label="Visibilidad">
+  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+    {[['grupal','👥 Grupal','Todos lo ven'],['personal','👤 Personal','Solo tú lo ves']].map(([v,l,d])=>(
+      <div key={v} onClick={()=>s('visibility',v)} style={{padding:'10px 12px',borderRadius:10,border:`1.5px solid ${f.visibility===v?'#b87333':'var(--border)'}`,background:f.visibility===v?'rgba(184,115,51,0.06)':'transparent',cursor:'pointer',transition:'all 0.15s'}}>
+        <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:2}}>{l}</div>
+        <div style={{fontSize:11,color:'var(--text-light)'}}>{d}</div>
+      </div>
+    ))}
+  </div>
+</FG>
+
       <FG label="URL"><input className="form-input" type="url" value={f.url} onChange={e=>s('url',e.target.value)} placeholder="https://..." /></FG>
       <FG label="Notas"><textarea className="form-input" rows={2} value={f.notes} onChange={e=>s('notes',e.target.value)} /></FG>
       <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>{doc?'Guardar':'Agregar'}</Btn></div>
@@ -711,8 +737,8 @@ function TabChecklist({ trip, items, add, upd, del, isReader }: any) {
   const [newCatTxt,setNewCatTxt]=useState('')
   const PRESET_CATS = ['Ropa','Documentos','Electrónica','Higiene','Medicamentos','Calzado','Accesorios','Otros']
   const availablePresets = PRESET_CATS.filter(p=>!cats.includes(p))
-  const addI=async(cat:string)=>{ if(!newTxt.trim())return; await add('checklist',{category:cat,name:newTxt.trim(),checked:0}); setNewTxt('');setNewCat('') }
-  const addCat=async(cat:string)=>{ if(!cat.trim())return; await add('checklist',{category:cat.trim(),name:'Primer ítem',checked:0}); setAddingCat(false);setNewCatTxt('') }
+  const addI=async(cat:string)=>{ if(!newTxt.trim())return; await add('checklist',{category:cat,name:newTxt.trim(),checked:0,visibility:'grupal',created_by:''}); setNewTxt('');setNewCat('') }
+  const addCat=async(cat:string)=>{ if(!cat.trim())return; await add('checklist',{category:cat.trim(),name:'Primer ítem',checked:0,visibility:'grupal',created_by:''}); setAddingCat(false);setNewCatTxt('') }
   return (
     <div className="fade-in">
       <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:8}}>
