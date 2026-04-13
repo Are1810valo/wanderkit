@@ -75,7 +75,6 @@ const Modal = memo(({ title, onClose, children }: any) => {
 })
 Modal.displayName='Modal'
 
-
 const FG = memo(({ label, children }: any) => (
   <div style={{marginBottom:14}}>
     <label style={{display:'block',fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-mid)',marginBottom:6}}>{label}</label>
@@ -110,6 +109,17 @@ const ErrMsg = ({ msg }: { msg:string }) => !msg ? null : (
 
 const Skel = ({ h=80 }: { h?:number }) => <div className="skeleton" style={{height:h,borderRadius:14,marginBottom:10}} />
 
+const VisibilitySelector = ({ value, onChange }: any) => (
+  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14}}>
+    {[['grupal','👥 Grupal','Todos lo ven'],['personal','👤 Personal','Solo tú lo ves']].map(([v,l,d])=>(
+      <div key={v} onClick={()=>onChange(v)} style={{padding:'10px 12px',borderRadius:10,border:`1.5px solid ${value===v?'#b87333':'var(--border)'}`,background:value===v?'rgba(184,115,51,0.06)':'transparent',cursor:'pointer',transition:'all 0.15s'}}>
+        <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:2}}>{l}</div>
+        <div style={{fontSize:11,color:'var(--text-light)'}}>{d}</div>
+      </div>
+    ))}
+  </div>
+)
+
 export default function TabPage() {
   const params  = useParams()
   const tripId  = params.id as string
@@ -125,7 +135,7 @@ export default function TabPage() {
 
   const isReader = userRole === 'lector'
   const [userEmail, setUserEmail] = useState('')
-useEffect(()=>{ fetch('/api/auth/session').then(r=>r.json()).then(s=>setUserEmail(s?.user?.email||'')) },[])
+  useEffect(()=>{ fetch('/api/auth/session').then(r=>r.json()).then(s=>setUserEmail(s?.user?.email||'')) },[])
   const add = useCallback(async(type:string,data:any)=>{ await addItem(type,{...data,created_by:userEmail}); toast('Agregado correctamente') },[addItem,userEmail])
   const upd = useCallback(async(type:string,data:any)=>{ await updateItem(type,data); toast('Guardado') },[updateItem])
   const del = useCallback(async(type:string,id:string)=>{ await deleteItem(type,id); toast('Eliminado','info') },[deleteItem])
@@ -144,7 +154,7 @@ useEffect(()=>{ fetch('/api/auth/session').then(r=>r.json()).then(s=>setUserEmai
           {tab==='checklist' && <TabChecklist  trip={trip} items={items} add={add} upd={upd} del={del} isReader={isReader} />}
           {tab==='proposals' && <TabProposals  trip={trip} items={items} add={add} upd={upd} del={del} isReader={isReader} />}
           {tab==='journal'   && <TabJournal    trip={trip} items={items} add={add} upd={upd} del={del} isReader={isReader} />}
-          {tab==='summary'   && <TabSummary    trip={trip} items={items} />}
+          {tab==='summary'   && <TabSummary    trip={trip} items={items} tripId={tripId} />}
         </>
       )}
     </div>
@@ -341,12 +351,8 @@ function TabItinerary({ trip, items, add, upd, del, isReader }: any) {
     const oldIdx = acts.findIndex((a:any)=>a.id===active.id)
     const newIdx = acts.findIndex((a:any)=>a.id===over.id)
     if(oldIdx===-1||newIdx===-1) return
-    const reordered = [...acts]
-    const [moved] = reordered.splice(oldIdx,1)
-    reordered.splice(newIdx,0,moved)
-    // Intercambiar horas para reflejar el nuevo orden
     const movedTime = acts[newIdx]?.time||null
-    const overTime = acts[oldIdx]?.time||null
+    const [moved] = [...acts].splice(oldIdx,1)
     await upd('itinerary',{...moved,time:movedTime})
   }
 
@@ -439,8 +445,6 @@ function TabExpenses({ trip, items, add, upd, del, isReader }: any) {
   const est=exp.reduce((s:number,e:any)=>s+(e.estimated||0),0)
   const real=exp.reduce((s:number,e:any)=>s+(e.real||0),0)
   const diff=real-est
-
-  // Datos para gráfico por categoría
   const cats = ['alojamiento','transporte','comida','actividades','compras','otros']
   const chartData = cats.map(cat=>({
     name: cat, icon: CE[cat],
@@ -454,7 +458,6 @@ function TabExpenses({ trip, items, add, upd, del, isReader }: any) {
         {[{l:'Estimado total',v:fmt(est,trip?.currency),c:'#4a7fa5'},{l:'Real gastado',v:fmt(real,trip?.currency),c:'#4a7c59'},{l:'Diferencia',v:`${diff>0?'+':''}${fmt(diff,trip?.currency)}`,c:diff>0?'#c45c5c':'#4a7c59'}]
           .map((s,i)=><div key={i} style={{background:'var(--bg-card)',borderRadius:14,padding:'18px 20px',border:'1px solid var(--border)',textAlign:'center'}}><div style={{fontSize:9,fontWeight:700,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:8}}>{s.l}</div><div style={{fontFamily:'Cormorant Garamond,serif',fontSize:28,fontWeight:300,color:s.c}}>{s.v}</div></div>)}
       </div>
-
       {chartData.length>0&&(
         <div style={{background:'var(--bg-card)',borderRadius:14,border:'1px solid var(--border)',marginBottom:16,overflow:'hidden'}}>
           <div onClick={()=>setShowChart(!showChart)} style={{padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',cursor:'pointer'}}>
@@ -471,12 +474,8 @@ function TabExpenses({ trip, items, add, upd, del, isReader }: any) {
                       <span style={{color:'var(--text-mid)',textTransform:'capitalize'}}>{d.icon} {d.name}</span>
                       <span style={{color:'var(--text-light)',fontSize:11}}>{fmt(d.real||d.estimado,trip?.currency)}</span>
                     </div>
-                    {d.estimado>0&&<div style={{height:6,background:'var(--bg-cream-dark)',borderRadius:3,marginBottom:3,overflow:'hidden'}}>
-                      <div style={{width:`${Math.round(d.estimado/max*100)}%`,height:'100%',background:'#4a7fa5',borderRadius:3,transition:'width 0.8s cubic-bezier(0.16,1,0.3,1)'}} />
-                    </div>}
-                    {d.real>0&&<div style={{height:6,background:'var(--bg-cream-dark)',borderRadius:3,overflow:'hidden'}}>
-                      <div style={{width:`${Math.round(d.real/max*100)}%`,height:'100%',background:d.real>d.estimado?'#c45c5c':'#4a7c59',borderRadius:3,transition:'width 0.8s cubic-bezier(0.16,1,0.3,1)'}} />
-                    </div>}
+                    {d.estimado>0&&<div style={{height:6,background:'var(--bg-cream-dark)',borderRadius:3,marginBottom:3,overflow:'hidden'}}><div style={{width:`${Math.round(d.estimado/max*100)}%`,height:'100%',background:'#4a7fa5',borderRadius:3,transition:'width 0.8s cubic-bezier(0.16,1,0.3,1)'}} /></div>}
+                    {d.real>0&&<div style={{height:6,background:'var(--bg-cream-dark)',borderRadius:3,overflow:'hidden'}}><div style={{width:`${Math.round(d.real/max*100)}%`,height:'100%',background:d.real>d.estimado?'#c45c5c':'#4a7c59',borderRadius:3,transition:'width 0.8s cubic-bezier(0.16,1,0.3,1)'}} /></div>}
                   </div>
                 )
               })}
@@ -489,7 +488,6 @@ function TabExpenses({ trip, items, add, upd, del, isReader }: any) {
           )}
         </div>
       )}
-
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
         {!isReader&&<Btn onClick={()=>{setEditing(null);setModal(true)}} primary>＋ Gasto</Btn>}
       </div>
@@ -501,7 +499,7 @@ function TabExpenses({ trip, items, add, upd, del, isReader }: any) {
             <div style={{width:38,height:38,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,background:'var(--bg-cream)',flexShrink:0}}>{CE[e.category]||'📌'}</div>
             <div style={{flex:1,minWidth:120}}>
               <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{e.name}</div>
-              <div style={{fontSize:11,color:'var(--text-light)',marginTop:2,textTransform:'capitalize'}}>{e.category}</div>
+              <div style={{fontSize:11,color:'var(--text-light)',marginTop:2,textTransform:'capitalize'}}>{e.category}{e.visibility==='personal'&&<span style={{marginLeft:6,padding:'1px 6px',borderRadius:8,background:'rgba(138,90,170,0.1)',color:'#8a5aaa',fontSize:10}}>👤 personal</span>}</div>
               <div style={{display:'flex',gap:10,marginTop:3,flexWrap:'wrap'}}>
                 {e.persons>1&&<span style={{fontSize:11,color:'var(--text-mid)'}}>👥 {e.persons}p · {fmt((e.real||0)/e.persons,trip?.currency)}/c/u</span>}
                 {e.paid_by&&<span style={{fontSize:11,color:'var(--text-mid)'}}>💳 {e.paid_by}</span>}
@@ -541,18 +539,7 @@ function ExpenseForm({ exp, currency, onSave }: any) {
         <FG label="N° personas"><select className="form-input" value={f.persons} onChange={e=>s('persons',parseInt(e.target.value))}>{[1,2,3,4,5,6,7,8,9,10].map(n=><option key={n} value={n}>{n===1?'👤 1 persona':`👥 ${n} personas`}</option>)}</select></FG>
         <FG label="¿Quién pagó?"><input className="form-input" value={f.paidBy} onChange={e=>s('paidBy',e.target.value)} onKeyDown={hk} placeholder="Ej: Ezequiel" /></FG>
       </div>
-
-      <FG label="Visibilidad">
-  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-    {[['grupal','👥 Grupal','Todos lo ven'],['personal','👤 Personal','Solo tú lo ves']].map(([v,l,d])=>(
-      <div key={v} onClick={()=>s('visibility',v)} style={{padding:'10px 12px',borderRadius:10,border:`1.5px solid ${f.visibility===v?'#b87333':'var(--border)'}`,background:f.visibility===v?'rgba(184,115,51,0.06)':'transparent',cursor:'pointer',transition:'all 0.15s'}}>
-        <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:2}}>{l}</div>
-        <div style={{fontSize:11,color:'var(--text-light)'}}>{d}</div>
-      </div>
-    ))}
-  </div>
-</FG>
-
+      <FG label="Visibilidad"><VisibilitySelector value={f.visibility} onChange={(v:string)=>s('visibility',v)} /></FG>
       {f.persons>1&&f.real!==''&&<div style={{padding:'8px 12px',background:'rgba(74,127,165,0.06)',border:'1px solid rgba(74,127,165,0.15)',borderRadius:10,fontSize:13,color:'var(--text-mid)',marginBottom:10}}>💡 Por persona: <strong style={{color:'var(--navy)'}}>{fmt(parseFloat(f.real as string)/f.persons,currency)}</strong></div>}
       <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>{exp?'Guardar':'Agregar'}</Btn></div>
     </div>
@@ -606,7 +593,7 @@ function TabPlaces({ trip, items, add, upd, del, isReader }: any) {
 }
 
 function PlaceForm({ place, onSave }: any) {
-  const [f,setF] = useState({name:place?.name||'',type:place?.type||'Atracción',note:place?.note||'',rating:place?.rating||0,visited:place?.visited||0,lat:place?.lat||'',lng:place?.lng||''})
+  const [f,setF] = useState({name:place?.name||'',type:place?.type||'Atracción',note:place?.note||'',rating:place?.rating||0,visited:place?.visited||0,lat:place?.lat||'',lng:place?.lng||'',searchQuery:''})
   const [saving,setSaving] = useState(false)
   const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
@@ -617,12 +604,18 @@ function PlaceForm({ place, onSave }: any) {
       <ErrMsg msg={error} />
       <FG label="Nombre"><input className="form-input" value={f.name} onChange={e=>s('name',e.target.value)} onKeyDown={hk} autoFocus /></FG>
       <FG label="Tipo"><input className="form-input" value={f.type} onChange={e=>s('type',e.target.value)} onKeyDown={hk} placeholder="Monumento, Playa, Restaurante..." /></FG>
+      <FG label="Buscar lugar">
+        <div style={{display:'flex',gap:8}}>
+          <input className="form-input" value={f.searchQuery} onChange={e=>s('searchQuery',e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();window.open(`https://www.openstreetmap.org/search?query=${encodeURIComponent(f.searchQuery)}`,'_blank')}}} placeholder="Ej: Torre Eiffel, París..." />
+          <button type="button" onClick={()=>window.open(`https://www.openstreetmap.org/search?query=${encodeURIComponent(f.searchQuery)}`,'_blank')} style={{padding:'0 14px',background:'#4a7fa5',color:'white',border:'none',borderRadius:10,cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>🔍</button>
+        </div>
+      </FG>
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-        <FG label="Latitud"><input className="form-input" type="number" step="any" value={f.lat} onChange={e=>s('lat',e.target.value)} placeholder="-22.9519" /></FG>
-        <FG label="Longitud"><input className="form-input" type="number" step="any" value={f.lng} onChange={e=>s('lng',e.target.value)} placeholder="-43.2105" /></FG>
+        <FG label="Latitud (opcional)"><input className="form-input" type="number" step="any" value={f.lat} onChange={e=>s('lat',e.target.value)} placeholder="-22.9519" /></FG>
+        <FG label="Longitud (opcional)"><input className="form-input" type="number" step="any" value={f.lng} onChange={e=>s('lng',e.target.value)} placeholder="-43.2105" /></FG>
       </div>
       {f.lat&&f.lng&&<div style={{marginBottom:12,borderRadius:10,overflow:'hidden',height:140,border:'1px solid var(--border)'}}><iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(String(f.lng))-0.01},${parseFloat(String(f.lat))-0.01},${parseFloat(String(f.lng))+0.01},${parseFloat(String(f.lat))+0.01}&layer=mapnik&marker=${f.lat},${f.lng}`} style={{width:'100%',height:'100%',border:'none'}} loading="lazy" /></div>}
-      <div style={{padding:'8px 12px',background:'rgba(74,127,165,0.06)',border:'1px solid rgba(74,127,165,0.15)',borderRadius:10,fontSize:12,color:'var(--text-mid)',marginBottom:12}}>💡 Busca en <a href="https://www.openstreetmap.org" target="_blank" rel="noreferrer" style={{color:'#4a7fa5'}}>openstreetmap.org</a> → click derecho → copiar coordenadas.</div>
+      <div style={{padding:'8px 12px',background:'rgba(74,127,165,0.06)',border:'1px solid rgba(74,127,165,0.15)',borderRadius:10,fontSize:12,color:'var(--text-mid)',marginBottom:12}}>💡 Busca → abre en mapa → click derecho → copia coordenadas y pégalas arriba.</div>
       <FG label="Nota personal"><textarea className="form-input" rows={2} value={f.note} onChange={e=>s('note',e.target.value)} /></FG>
       <FG label="Calificación"><div style={{display:'flex',gap:10}}>{[1,2,3,4,5].map(n=><span key={n} style={{fontSize:26,cursor:'pointer',color:n<=f.rating?'#b87333':'var(--border)',transition:'all 0.15s'}} onClick={()=>s('rating',n)}>★</span>)}</div></FG>
       <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>{place?'Guardar':'Agregar'}</Btn></div>
@@ -674,7 +667,7 @@ function TabDocuments({ trip, items, add, upd, del, isReader }: any) {
               <div style={{width:40,height:40,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,background:'var(--bg-cream)',flexShrink:0}}>{DI[d.type]||'📄'}</div>
               <div style={{flex:1,minWidth:100}}>
                 <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{d.name}</div>
-                <div style={{fontSize:11,color:'var(--text-light)',marginTop:1,textTransform:'capitalize'}}>{d.type}</div>
+                <div style={{fontSize:11,color:'var(--text-light)',marginTop:1,textTransform:'capitalize'}}>{d.type}{d.visibility==='personal'&&<span style={{marginLeft:6,padding:'1px 6px',borderRadius:8,background:'rgba(138,90,170,0.1)',color:'#8a5aaa',fontSize:10}}>👤 personal</span>}</div>
                 {d.notes&&<div style={{fontSize:12,color:'var(--text-mid)',marginTop:2}}>{d.notes}</div>}
                 {d.url&&<a href={d.url} target="_blank" rel="noreferrer" style={{fontSize:12,color:'#4a7fa5',textDecoration:'none',marginTop:3,display:'inline-flex',alignItems:'center',gap:4,fontWeight:500}}>🔗 Abrir enlace</a>}
               </div>
@@ -694,7 +687,7 @@ function TabDocuments({ trip, items, add, upd, del, isReader }: any) {
 }
 
 function DocForm({ doc, onSave }: any) {
-const [f,setF] = useState({name:doc?.name||'',type:doc?.type||'otro',url:doc?.url||'',status:doc?.status||'activo',notes:doc?.notes||'',visibility:doc?.visibility||'grupal'})
+  const [f,setF] = useState({name:doc?.name||'',type:doc?.type||'otro',url:doc?.url||'',status:doc?.status||'activo',notes:doc?.notes||'',visibility:doc?.visibility||'grupal'})
   const [saving,setSaving] = useState(false)
   const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
@@ -708,18 +701,7 @@ const [f,setF] = useState({name:doc?.name||'',type:doc?.type||'otro',url:doc?.ur
         <FG label="Tipo"><select className="form-input" value={f.type} onChange={e=>s('type',e.target.value)}>{['vuelo','hotel','seguro','tour','visa','otro'].map(t=><option key={t}>{t}</option>)}</select></FG>
         <FG label="Estado"><select className="form-input" value={f.status} onChange={e=>s('status',e.target.value)}><option value="activo">✅ Activo</option><option value="usado">📌 Usado</option><option value="vencido">⚫ Vencido</option></select></FG>
       </div>
-
-<FG label="Visibilidad">
-  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-    {[['grupal','👥 Grupal','Todos lo ven'],['personal','👤 Personal','Solo tú lo ves']].map(([v,l,d])=>(
-      <div key={v} onClick={()=>s('visibility',v)} style={{padding:'10px 12px',borderRadius:10,border:`1.5px solid ${f.visibility===v?'#b87333':'var(--border)'}`,background:f.visibility===v?'rgba(184,115,51,0.06)':'transparent',cursor:'pointer',transition:'all 0.15s'}}>
-        <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:2}}>{l}</div>
-        <div style={{fontSize:11,color:'var(--text-light)'}}>{d}</div>
-      </div>
-    ))}
-  </div>
-</FG>
-
+      <FG label="Visibilidad"><VisibilitySelector value={f.visibility} onChange={(v:string)=>s('visibility',v)} /></FG>
       <FG label="URL"><input className="form-input" type="url" value={f.url} onChange={e=>s('url',e.target.value)} placeholder="https://..." /></FG>
       <FG label="Notas"><textarea className="form-input" rows={2} value={f.notes} onChange={e=>s('notes',e.target.value)} /></FG>
       <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>{doc?'Guardar':'Agregar'}</Btn></div>
@@ -733,12 +715,13 @@ function TabChecklist({ trip, items, add, upd, del, isReader }: any) {
   const done=ck.filter((i:any)=>i.checked).length
   const [newCat,setNewCat]=useState('')
   const [newTxt,setNewTxt]=useState('')
+  const [newVis,setNewVis]=useState('grupal')
   const [addingCat,setAddingCat]=useState(false)
   const [newCatTxt,setNewCatTxt]=useState('')
   const PRESET_CATS = ['Ropa','Documentos','Electrónica','Higiene','Medicamentos','Calzado','Accesorios','Otros']
   const availablePresets = PRESET_CATS.filter(p=>!cats.includes(p))
-  const addI=async(cat:string)=>{ if(!newTxt.trim())return; await add('checklist',{category:cat,name:newTxt.trim(),checked:0,visibility:'grupal',created_by:''}); setNewTxt('');setNewCat('') }
-  const addCat=async(cat:string)=>{ if(!cat.trim())return; await add('checklist',{category:cat.trim(),name:'Primer ítem',checked:0,visibility:'grupal',created_by:''}); setAddingCat(false);setNewCatTxt('') }
+  const addI=async(cat:string)=>{ if(!newTxt.trim())return; await add('checklist',{category:cat,name:newTxt.trim(),checked:0,visibility:newVis}); setNewTxt('');setNewCat('');setNewVis('grupal') }
+  const addCat=async(cat:string)=>{ if(!cat.trim())return; await add('checklist',{category:cat.trim(),name:'Primer ítem',checked:0,visibility:'grupal'}); setAddingCat(false);setNewCatTxt('') }
   return (
     <div className="fade-in">
       <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:8}}>
@@ -768,14 +751,24 @@ function TabChecklist({ trip, items, add, upd, del, isReader }: any) {
                   style={{display:'flex',alignItems:'center',gap:10,padding:'9px 16px',borderBottom:'1px solid var(--border)',cursor:isReader?'default':'pointer',opacity:it.checked?0.55:1,transition:'opacity 0.2s'}}>
                   <div style={{width:19,height:19,borderRadius:5,border:`2px solid ${it.checked?'#4a7c59':'var(--border)'}`,background:it.checked?'#4a7c59':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.2s'}}>{it.checked&&<span style={{color:'white',fontSize:11,fontWeight:700}}>✓</span>}</div>
                   <div style={{fontSize:13,color:'var(--text)',flex:1,textDecoration:it.checked?'line-through':'none'}}>{it.name}</div>
-                  {!isReader&&<button onClick={e=>{e.stopPropagation();del('checklist',it.id)}} style={{width:20,height:20,borderRadius:5,border:'1px solid var(--border)',background:'transparent',cursor:'pointer',fontSize:10,color:'#c45c5c',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>}
+                  {it.visibility==='personal'&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:6,background:'rgba(138,90,170,0.1)',color:'#8a5aaa'}}>👤</span>}
+                  {!isReader&&<>
+                    <button onClick={e=>{e.stopPropagation();const n=prompt('Editar ítem:',it.name);if(n&&n.trim())upd('checklist',{...it,name:n.trim()})}} style={{width:20,height:20,borderRadius:5,border:'1px solid var(--border)',background:'transparent',cursor:'pointer',fontSize:10,color:'var(--text-light)',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>
+                    <button onClick={e=>{e.stopPropagation();del('checklist',it.id)}} style={{width:20,height:20,borderRadius:5,border:'1px solid var(--border)',background:'transparent',cursor:'pointer',fontSize:10,color:'#c45c5c',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                  </>}
                 </div>
               ))}
               {!isReader&&(newCat===cat?(
-                <div style={{padding:'7px 12px',display:'flex',gap:7}}>
-                  <input className="form-input" style={{flex:1,padding:'6px 10px',fontSize:13}} value={newTxt} onChange={e=>setNewTxt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addI(cat)}if(e.key==='Escape'){setNewCat('');setNewTxt('')}}} placeholder="Nuevo ítem..." autoFocus />
-                  <button onClick={()=>addI(cat)} style={{padding:'6px 12px',background:'#b87333',color:'white',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>+</button>
-                  <button onClick={()=>{setNewCat('');setNewTxt('')}} style={{padding:'6px 10px',background:'transparent',color:'var(--text-light)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,cursor:'pointer'}}>✕</button>
+                <div style={{padding:'7px 12px',display:'flex',flexDirection:'column',gap:6}}>
+                  <input className="form-input" style={{padding:'6px 10px',fontSize:13}} value={newTxt} onChange={e=>setNewTxt(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addI(cat)}if(e.key==='Escape'){setNewCat('');setNewTxt('')}}} placeholder="Nuevo ítem..." autoFocus />
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <select value={newVis} onChange={e=>setNewVis(e.target.value)} style={{flex:1,padding:'5px 8px',border:'1px solid var(--border)',borderRadius:7,background:'var(--bg-input)',color:'var(--text)',fontSize:12,fontFamily:'DM Sans,sans-serif'}}>
+                      <option value="grupal">👥 Grupal</option>
+                      <option value="personal">👤 Personal</option>
+                    </select>
+                    <button onClick={()=>addI(cat)} style={{padding:'6px 12px',background:'#b87333',color:'white',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>+</button>
+                    <button onClick={()=>{setNewCat('');setNewTxt('')}} style={{padding:'6px 10px',background:'transparent',color:'var(--text-light)',border:'1px solid var(--border)',borderRadius:8,fontSize:12,cursor:'pointer'}}>✕</button>
+                  </div>
                 </div>
               ):(
                 <div style={{padding:'7px 16px'}}><button onClick={()=>{setNewCat(cat);setNewTxt('')}} style={{fontSize:12,color:'#b87333',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontWeight:500}}>＋ Agregar ítem</button></div>
@@ -883,7 +876,7 @@ function JournalForm({ entry, onSave }: any) {
   )
 }
 
-function TabSummary({ trip, items }: any) {
+function TabSummary({ trip, items, tripId }: any) {
   const exp=items?.expenses||[],fl=items?.flights||[]
   const est=exp.reduce((s:number,e:any)=>s+(e.estimated||0),0)
   const real=exp.reduce((s:number,e:any)=>s+(e.real||0),0)
@@ -904,8 +897,10 @@ function TabSummary({ trip, items }: any) {
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:12}}>Resumen del viaje</div>
         <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:44,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip?.name}</div>
         <div style={{fontSize:14,color:'var(--text-mid)',marginTop:8}}>{trip?.destination} · {trip?.start_date} → {trip?.end_date}</div>
-        <button onClick={()=>window.print()} style={{marginTop:18,padding:'9px 20px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'inline-flex',alignItems:'center',gap:6}}>🖨️ Exportar PDF</button>
-        <button onClick={()=>{navigator.clipboard.writeText(window.location.href);toast('Link copiado','success')}} style={{marginTop:18,marginLeft:8,padding:'9px 20px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'inline-flex',alignItems:'center',gap:6}}>🔗 Compartir</button>
+        <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:18,flexWrap:'wrap'}}>
+          <button onClick={()=>window.print()} style={{padding:'9px 20px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'inline-flex',alignItems:'center',gap:6}}>🖨️ Exportar PDF</button>
+          <button onClick={()=>{navigator.clipboard.writeText(window.location.href);toast('Link copiado','success')}} style={{padding:'9px 20px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'inline-flex',alignItems:'center',gap:6}}>🔗 Compartir</button>
+        </div>
       </div>
       {(flIda||flReg)&&(
         <div style={{background:'var(--bg-card)',borderRadius:16,padding:'20px 24px',border:'1px solid var(--border)',marginBottom:20}}>
