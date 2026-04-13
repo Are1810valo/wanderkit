@@ -127,7 +127,9 @@ textarea.form-input { resize: vertical; line-height: 1.6; }
   .toast { min-width: unset; width: 100%; }
   .form-input { font-size: 16px !important; padding: 12px 14px !important; }
 }
-
+body {
+  overscroll-behavior-y: contain;
+}
 @media (max-width: 480px) {
   .responsive-grid-2 { grid-template-columns: 1fr !important; }
   .responsive-text-sm { font-size: 28px !important; }
