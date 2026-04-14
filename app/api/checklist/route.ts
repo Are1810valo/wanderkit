@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 export async function POST(request: Request) {
@@ -8,9 +7,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const id = uid()
     await db.execute({
-      sql: `INSERT INTO checklist (id, trip_id, category, name, checked)
-            VALUES (?, ?, ?, ?, ?)`,
-      args: [id, body.tripId, body.category, body.name, body.checked ? 1 : 0]
+      sql: `INSERT INTO checklist (id, trip_id, category, name, checked, visibility, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, body.tripId, body.category, body.name, body.checked?1:0, body.visibility||'grupal', body.created_by||null]
     })
     return NextResponse.json({ id })
   } catch (error) {
@@ -22,8 +20,8 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json()
     await db.execute({
-      sql: `UPDATE checklist SET category=?, name=?, checked=? WHERE id=?`,
-      args: [body.category, body.name, body.checked ? 1 : 0, body.id]
+      sql: `UPDATE checklist SET category=?, name=?, checked=?, visibility=? WHERE id=?`,
+      args: [body.category, body.name, body.checked?1:0, body.visibility||'grupal', body.id]
     })
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 export async function POST(request: Request) {
@@ -8,9 +7,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const id = uid()
     await db.execute({
-      sql: `INSERT INTO documents (id, trip_id, name, type, url, status, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      args: [id, body.tripId, body.name, body.type, body.url, body.status, body.notes]
+      sql: `INSERT INTO documents (id, trip_id, name, type, url, status, notes, visibility, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, body.tripId, body.name, body.type, body.url||null, body.status, body.notes||null, body.visibility||'grupal', body.created_by||null]
     })
     return NextResponse.json({ id })
   } catch (error) {
@@ -22,8 +20,8 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json()
     await db.execute({
-      sql: `UPDATE documents SET name=?, type=?, url=?, status=?, notes=? WHERE id=?`,
-      args: [body.name, body.type, body.url, body.status, body.notes, body.id]
+      sql: `UPDATE documents SET name=?, type=?, url=?, status=?, notes=?, visibility=?, has_it=?, packed=? WHERE id=?`,
+      args: [body.name, body.type, body.url||null, body.status, body.notes||null, body.visibility||'grupal', body.has_it?1:0, body.packed?1:0, body.id]
     })
     return NextResponse.json({ success: true })
   } catch (error) {

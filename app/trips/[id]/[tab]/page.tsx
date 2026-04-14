@@ -138,7 +138,8 @@ const { items, loading, userRole, addItem, updateItem, deleteItem, refetch } = u
   useEffect(()=>{ fetch('/api/auth/session').then(r=>r.json()).then(s=>setUserEmail(s?.user?.email||'')) },[])
   const add = useCallback(async(type:string,data:any)=>{ 
   const email = userEmail || (await fetch('/api/auth/session').then(r=>r.json()).then(s=>s?.user?.email||''))
-  await addItem(type,{...data,created_by:email}); toast('Agregado correctamente') 
+  console.log('ADD email:', email, 'data:', data)
+await addItem(type,{...data,created_by:email}); toast('Agregado correctamente')
 },[addItem,userEmail])
   const upd = useCallback(async(type:string,data:any)=>{ await updateItem(type,data); toast('Guardado') },[updateItem])
   const del = useCallback(async(type:string,id:string)=>{ await deleteItem(type,id); toast('Eliminado','info') },[deleteItem])

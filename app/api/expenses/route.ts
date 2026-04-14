@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 export async function POST(request: Request) {
@@ -8,9 +7,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const id = uid()
     await db.execute({
-      sql: `INSERT INTO expenses (id, trip_id, name, category, estimated, real)
-            VALUES (?, ?, ?, ?, ?, ?)`,
-      args: [id, body.tripId, body.name, body.category, body.estimated, body.real]
+      sql: `INSERT INTO expenses (id, trip_id, name, category, estimated, real, persons, paid_by, visibility, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, body.tripId, body.name, body.category, body.estimated||null, body.real||null, body.persons||1, body.paidBy||null, body.visibility||'grupal', body.created_by||null]
     })
     return NextResponse.json({ id })
   } catch (error) {
@@ -22,8 +20,8 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json()
     await db.execute({
-      sql: `UPDATE expenses SET name=?, category=?, estimated=?, real=? WHERE id=?`,
-      args: [body.name, body.category, body.estimated, body.real, body.id]
+      sql: `UPDATE expenses SET name=?, category=?, estimated=?, real=?, persons=?, paid_by=?, visibility=? WHERE id=?`,
+      args: [body.name, body.category, body.estimated||null, body.real||null, body.persons||1, body.paid_by||body.paidBy||null, body.visibility||'grupal', body.id]
     })
     return NextResponse.json({ success: true })
   } catch (error) {
