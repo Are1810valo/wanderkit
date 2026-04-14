@@ -90,7 +90,7 @@ export default function Home() {
 useEffect(()=>{
   trips.forEach(t=>{
     if(!tripPhotos[t.id]&&t.destination){
-      fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(t.destination.split(',')[0].trim()+' travel')}&per_page=1&orientation=landscape`,{headers:{'Authorization':`Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`}})
+      fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(t.destination.split(',')[0].trim())}&per_page=1&orientation=landscape`,{headers:{'Authorization':`Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`}})
         .then(r=>r.json()).then(d=>{ if(d.results?.[0]) setTripPhotos(p=>({...p,[t.id]:d.results[0].urls.regular})) })
         .catch(()=>{})
     }
@@ -99,6 +99,7 @@ useEffect(()=>{
   const ongoing = trips.filter(t => t.status === 'en curso').length
   const upcoming = trips.filter(t => t.status === 'planificado').length
   const finished = trips.filter(t => t.status === 'finalizado').length
+  const countries = [...new Set(trips.map(t => t.destination?.split(',').pop()?.trim()).filter(Boolean))].length
 
   const statusConfig: Record<string, any> = {
     planificado: { label: 'Planificado', bg: 'rgba(74,127,165,0.1)', color: '#4a7fa5' },
@@ -220,7 +221,7 @@ useEffect(()=>{
             {/* Stats — solo si hay viajes */}
             {trips.length > 0 && (
               <div className="fade-up-2 responsive-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, marginBottom: 40, background: 'var(--border)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                {[{ num: trips.length, label: 'Total' }, { num: ongoing, label: 'En curso' }, { num: upcoming, label: 'Planificados' }, { num: finished, label: 'Finalizados' }].map((s, i) => (
+                {[{ num: trips.length, label: 'Total viajes' }, { num: finished, label: 'Finalizados' }, { num: countries, label: 'Países' }, { num: ongoing, label: 'En curso' }].map((s, i) => (
                   <div key={i} style={{ background: 'var(--bg-card)', padding: '20px 24px' }}>
                     <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 40, fontWeight: 300, color: 'var(--navy)', lineHeight: 1 }}><AnimatedNumber value={s.num} /></div>
                     <div style={{ fontSize: 10, color: 'var(--text-light)', marginTop: 4, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.label}</div>
