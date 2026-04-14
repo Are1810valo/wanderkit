@@ -125,7 +125,7 @@ export default function TabPage() {
   const tripId  = params.id as string
   const tab     = params.tab as string
   const [trip, setTrip] = useState<any>(null)
-  const { items, loading, userRole, addItem, updateItem, deleteItem } = useTripContext()
+const { items, loading, userRole, addItem, updateItem, deleteItem, refetch } = useTripContext()
 
   useEffect(()=>{
     axios.get('/api/trips')
@@ -139,10 +139,38 @@ export default function TabPage() {
   const add = useCallback(async(type:string,data:any)=>{ await addItem(type,{...data,created_by:userEmail}); toast('Agregado correctamente') },[addItem,userEmail])
   const upd = useCallback(async(type:string,data:any)=>{ await updateItem(type,data); toast('Guardado') },[updateItem])
   const del = useCallback(async(type:string,id:string)=>{ await deleteItem(type,id); toast('Eliminado','info') },[deleteItem])
+  const [pullY, setPullY] = useState(0)
+const startY = useRef(0)
+const pulling = useRef(false)
+
+useEffect(()=>{
+  const el = document.querySelector('.tab-content-responsive') as HTMLElement
+  if(!el) return
+  const onStart=(e:TouchEvent)=>{ startY.current=e.touches[0].clientY }
+  const onMove=(e:TouchEvent)=>{
+    const dy=e.touches[0].clientY-startY.current
+    if(dy>0&&el.scrollTop===0){setPullY(Math.min(dy,80));e.preventDefault()}
+  }
+  const onEnd=async()=>{
+    if(pullY>60&&!pulling.current){pulling.current=true;await refetch();pulling.current=false}
+    setPullY(0)
+  }
+  el.addEventListener('touchstart',onStart,{passive:true})
+  el.addEventListener('touchmove',onMove,{passive:false})
+  el.addEventListener('touchend',onEnd)
+  return()=>{el.removeEventListener('touchstart',onStart);el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEnd)}
+},[pullY,refetch])
 
   return (
     <div className="tab-content-responsive fade-in" style={{padding:'32px 44px 64px'}}>
       <Toasts />
+      {pullY>0&&(
+  <div style={{position:'fixed',top:0,left:0,right:0,display:'flex',justifyContent:'center',zIndex:100,pointerEvents:'none',transform:`translateY(${pullY-40}px)`,transition:'transform 0.1s'}}>
+    <div style={{background:'var(--bg-card)',borderRadius:20,padding:'6px 14px',fontSize:12,color:'var(--text-mid)',boxShadow:'var(--shadow-card)',display:'flex',alignItems:'center',gap:6}}>
+      {pullY>60?'↑ Suelta para actualizar':'↓ Desliza para actualizar'}
+    </div>
+  </div>
+)}
       {loading ? <>{[1,2,3,4].map(i=><Skel key={i} h={i===1?180:90} />)}</> : (
         <>
           {tab==='overview'  && <TabOverview   trip={trip} items={items} />}
