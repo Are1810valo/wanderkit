@@ -21,9 +21,9 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: https://*.openstreetmap.org https://*.tile.openstreetmap.org",
+              "img-src 'self' data: https://*.openstreetmap.org https://*.tile.openstreetmap.org https://images.unsplash.com https://*.unsplash.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
               "frame-src https://www.openstreetmap.org",
-              "connect-src 'self'",
+              "connect-src 'self' https://api.unsplash.com",
             ].join('; ')
           },
           // Controla qué features del browser puede usar el sitio
