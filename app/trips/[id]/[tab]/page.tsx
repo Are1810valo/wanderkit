@@ -838,7 +838,8 @@ function TabProposals({ trip, items, add, upd, del, isReader }: any) {
             ))}
           </div>
           <div style={{padding:'8px 12px',borderRadius:10,fontSize:12,fontWeight:600,background:p.my_vote==='si'?'rgba(74,124,89,0.08)':p.my_vote==='no'?'rgba(196,92,92,0.08)':'rgba(184,115,51,0.08)',color:p.my_vote==='si'?'#4a7c59':p.my_vote==='no'?'#c45c5c':'#b87333',border:`1px solid ${p.my_vote==='si'?'rgba(74,124,89,0.18)':p.my_vote==='no'?'rgba(196,92,92,0.18)':'rgba(184,115,51,0.18)'}`}}>
-            {p.my_vote==='si'?'👍 Aprobado por ti':p.my_vote==='no'?'👎 Rechazado por ti':'🤔 Sin decidir aún'}
+            {p.status==='aprobada'?'✅ Propuesta aprobada':p.status==='rechazada'?'❌ Propuesta rechazada':p.my_vote==='si'?'👍 Tu voto: Sí':p.my_vote==='no'?'👎 Tu voto: No':p.my_vote==='quizas'?'🤔 Tu voto: Quizás':'🗳 Sin votar aún'}
+{p.module&&p.module!=='general'&&<div style={{fontSize:11,color:'var(--text-light)',marginTop:4}}>📌 {p.module==='itinerary'?'Itinerario':p.module==='places'?'Lugares':p.module==='expenses'?'Gastos':'Equipaje'}{p.status==='aprobada'?' — ítem creado ✅':''}</div>}
           </div>
         </div>
       ))}
@@ -848,12 +849,61 @@ function TabProposals({ trip, items, add, upd, del, isReader }: any) {
 }
 
 function ProposalForm({ onSave }: any) {
-  const [f,setF]=useState({title:'',description:''})
+  const [f,setF]=useState({title:'',description:'',module:'general',day:'1',time:'',origin:'',destination:'',date:'',estimated:'',category:'otros'})
   const [saving,setSaving]=useState(false)
   const [error,setError]=useState('')
+  const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
   const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
   const handleSave=async()=>{ if(!f.title.trim()){setError('El título es requerido');return} setSaving(true);setError(''); try{await onSave(f)}catch(e){setError('Error al guardar.');setSaving(false)} }
-  return (<div><ErrMsg msg={error} /><FG label="Título"><input className="form-input" value={f.title} onChange={e=>setF(p=>({...p,title:e.target.value}))} onKeyDown={hk} autoFocus /></FG><FG label="Descripción"><textarea className="form-input" rows={3} value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))} /></FG><div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>Agregar</Btn></div></div>)
+  return (
+    <div>
+      <ErrMsg msg={error} />
+      <FG label="¿A qué módulo aplica?">
+        <select className="form-input" value={f.module} onChange={e=>s('module',e.target.value)}>
+          <option value="general">📋 General</option>
+          <option value="flights">✈️ Vuelos</option>
+          <option value="itinerary">🗓 Itinerario</option>
+          <option value="places">📍 Lugares</option>
+          <option value="expenses">💰 Gastos</option>
+        </select>
+      </FG>
+      <FG label="Título"><input className="form-input" value={f.title} onChange={e=>s('title',e.target.value)} onKeyDown={hk} autoFocus placeholder={f.module==='flights'?'Ej: Vuelo a Miami':f.module==='itinerary'?'Ej: Visitar el centro histórico':f.module==='places'?'Ej: Torre Eiffel':f.module==='expenses'?'Ej: Hotel compartido':'Título de la propuesta'} /></FG>
+      <FG label="Descripción"><textarea className="form-input" rows={2} value={f.description} onChange={e=>s('description',e.target.value)} placeholder="Explica la propuesta al grupo..." /></FG>
+
+      {f.module==='itinerary'&&(
+        <div style={{padding:'12px 14px',background:'var(--bg-cream)',borderRadius:12,border:'1px solid var(--border)',marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:10}}>Detalles actividad</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <FG label="Día"><input className="form-input" type="number" min="1" value={f.day} onChange={e=>s('day',e.target.value)} onKeyDown={hk} /></FG>
+            <FG label="Hora"><input className="form-input" type="time" value={f.time} onChange={e=>s('time',e.target.value)} /></FG>
+          </div>
+        </div>
+      )}
+
+      {f.module==='flights'&&(
+        <div style={{padding:'12px 14px',background:'var(--bg-cream)',borderRadius:12,border:'1px solid var(--border)',marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:10}}>Detalles vuelo</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <FG label="Origen"><input className="form-input" value={f.origin} onChange={e=>s('origin',e.target.value)} onKeyDown={hk} placeholder="Santiago" /></FG>
+            <FG label="Destino"><input className="form-input" value={f.destination} onChange={e=>s('destination',e.target.value)} onKeyDown={hk} placeholder="Miami" /></FG>
+          </div>
+          <FG label="Fecha"><input className="form-input" type="date" value={f.date} onChange={e=>s('date',e.target.value)} /></FG>
+        </div>
+      )}
+
+      {f.module==='expenses'&&(
+        <div style={{padding:'12px 14px',background:'var(--bg-cream)',borderRadius:12,border:'1px solid var(--border)',marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:10}}>Detalles gasto</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <FG label="Monto estimado"><input className="form-input" type="number" min="0" value={f.estimated} onChange={e=>s('estimated',e.target.value)} onKeyDown={hk} placeholder="0" /></FG>
+            <FG label="Categoría"><select className="form-input" value={f.category} onChange={e=>s('category',e.target.value)}>{['alojamiento','transporte','comida','actividades','compras','otros'].map(c=><option key={c}>{c}</option>)}</select></FG>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>Proponer</Btn></div>
+    </div>
+  )
 }
 
 function TabJournal({ trip, items, add, upd, del, isReader }: any) {
