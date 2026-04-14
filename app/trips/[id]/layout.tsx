@@ -299,7 +299,8 @@ export default function TripLayout({ children, params }: { children: React.React
   const members = await axios.get(`/api/trips/${id}/members`)
   const session = await fetch('/api/auth/session').then(r=>r.json())
   const me = members.data.find((m:any)=>m.user_id===session?.user?.email)
-  if(me) setUserRole(me.role)
+  if(me) { setUserRole(me.role) }
+  // Owner siempre ve todo — no necesita filtro
 } catch(e){}
       setAllTrips(res.data)
       setTrip(res.data.find((t:any)=>t.id===id)||null)
