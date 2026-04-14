@@ -140,6 +140,7 @@ function EditTripModal({ trip, onClose, onSave }: any) {
 function InviteModal({ tripId, onClose }: any) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('lector')
+  const [access, setAccess] = useState('grupal')
   const [saving, setSaving] = useState(false)
   const [link, setLink] = useState('')
   const [error, setError] = useState('')
@@ -148,7 +149,7 @@ function InviteModal({ tripId, onClose }: any) {
     if (!email.trim()) { setError('El email es requerido'); return }
     setSaving(true); setError('')
     try {
-      const res = await axios.post('/api/invitations', { tripId, email: email.trim(), role })
+      const res = await axios.post('/api/invitations', { tripId, email: email.trim(), role, access })
       setLink(res.data.inviteUrl)
     } catch(e: any) {
       setError(e.response?.data?.error || 'Error al generar invitación')
@@ -164,8 +165,18 @@ function InviteModal({ tripId, onClose }: any) {
           </FG>
           <FG label="Rol">
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-              {[['lector','👁 Lector','Solo puede ver el viaje'],['escritor','✏️ Escritor','Puede editar el viaje']].map(([v,l,d])=>(
+              {[['lector','👁 Lector','Solo puede ver'],['escritor','✏️ Escritor','Puede editar']].map(([v,l,d])=>(
                 <div key={v} onClick={()=>setRole(v)} style={{padding:'12px 14px',borderRadius:12,border:`1.5px solid ${role===v?'#b87333':'var(--border)'}`,background:role===v?'rgba(184,115,51,0.06)':'transparent',cursor:'pointer',transition:'all 0.15s'}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:3}}>{l}</div>
+                  <div style={{fontSize:11,color:'var(--text-light)'}}>{d}</div>
+                </div>
+              ))}
+            </div>
+          </FG>
+          <FG label="¿Qué puede ver?">
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              {[['grupal','👥 Grupal + personal','Ve ítems grupales y los suyos'],['personal','👤 Solo personal','Solo ve sus propios ítems']].map(([v,l,d])=>(
+                <div key={v} onClick={()=>setAccess(v)} style={{padding:'12px 14px',borderRadius:12,border:`1.5px solid ${access===v?'#4a7fa5':'var(--border)'}`,background:access===v?'rgba(74,127,165,0.06)':'transparent',cursor:'pointer',transition:'all 0.15s'}}>
                   <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:3}}>{l}</div>
                   <div style={{fontSize:11,color:'var(--text-light)'}}>{d}</div>
                 </div>
@@ -189,7 +200,13 @@ function InviteModal({ tripId, onClose }: any) {
           <button onClick={()=>{navigator.clipboard.writeText(link);toast('Link copiado','success')}} style={{width:'100%',padding:'12px',background:'#b87333',color:'white',border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginBottom:10}}>
             📋 Copiar link
           </button>
-          <button onClick={onClose} style={{width:'100%',padding:'12px',background:'transparent',border:'1px solid var(--border)',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>
+          <button onClick={()=>{
+            const msg = encodeURIComponent(`Te invito a unirte a mi viaje en WanderKit 🌍\n${link}`)
+            window.open(`https://wa.me/?text=${msg}`,'_blank')
+          }} style={{width:'100%',padding:'12px',background:'#25D366',color:'white',border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+            💬 Compartir por WhatsApp
+          </button>
+          <button onClick={onClose}style={{width:'100%',padding:'12px',background:'transparent',border:'1px solid var(--border)',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>
             Cerrar
           </button>
         </>
