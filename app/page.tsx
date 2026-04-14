@@ -85,6 +85,16 @@ export default function Home() {
     toast(`${count} viaje${count > 1 ? 's' : ''} eliminado${count > 1 ? 's' : ''}`, 'info')
   }
 
+  const [tripPhotos, setTripPhotos] = useState<Record<string,string>>({})
+useEffect(()=>{
+  trips.forEach(t=>{
+    if(!tripPhotos[t.id]&&t.destination){
+      fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(t.destination)}&per_page=1&orientation=landscape`,{headers:{'Authorization':`Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`}})
+        .then(r=>r.json()).then(d=>{ if(d.results?.[0]) setTripPhotos(p=>({...p,[t.id]:d.results[0].urls.regular})) })
+        .catch(()=>{})
+    }
+  })
+},[trips])
   const ongoing = trips.filter(t => t.status === 'en curso').length
   const upcoming = trips.filter(t => t.status === 'planificado').length
   const finished = trips.filter(t => t.status === 'finalizado').length
@@ -239,10 +249,14 @@ export default function Home() {
                         <div onClick={(e) => toggleSelect(e, t.id)} style={{ position: 'absolute', top: 12, left: 12, width: 22, height: 22, borderRadius: 6, border: `2px solid ${isSelected ? '#b87333' : 'rgba(255,255,255,0.8)'}`, background: isSelected ? '#b87333' : 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', transition: 'all 0.15s' }}>
                           {isSelected && <span style={{ color: 'white', fontSize: 13, fontWeight: 700, lineHeight: 1 }}>✓</span>}
                         </div>
-                        <div style={{ height: 100, padding: '16px 20px', background: `linear-gradient(135deg, ${color}12, ${color}25)`, borderBottom: `3px solid ${color}`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 32, opacity: 0.4 }}>🌍</span>
-                          <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.color }}>{sc.label}</span>
-                        </div>
+                        <div style={{ height: 140, position: 'relative', overflow: 'hidden', borderBottom: `3px solid ${color}` }}>
+  {tripPhotos[t.id]
+    ? <img src={tripPhotos[t.id]} alt={t.destination} style={{width:'100%',height:'100%',objectFit:'cover',transition:'transform 0.4s'}} onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.05)')} onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')} />
+    : <div style={{width:'100%',height:'100%',background:`linear-gradient(135deg,${color}20,${color}40)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,opacity:0.4}}>🌍</div>
+  }
+  <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(0,0,0,0.4),transparent)'}} />
+  <span style={{position:'absolute',bottom:10,right:10,padding:'4px 10px',borderRadius:20,fontSize:11,fontWeight:600,background:'rgba(0,0,0,0.4)',color:'white',backdropFilter:'blur(4px)'}}>{sc.label}</span>
+</div>
                         <div style={{ padding: '18px 20px 20px' }}>
                           <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 22, fontWeight: 400, color: 'var(--navy)', lineHeight: 1.2 }}>{t.name}</div>
                           <div style={{ fontSize: 13, color: 'var(--text-mid)', marginTop: 4 }}>📍 {t.destination}</div>
