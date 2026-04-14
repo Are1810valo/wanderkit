@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { useTrips } from '@/lib/hooks/useTrips'
 
 const tripColors = ['#b87333','#4a7c59','#4a7fa5','#8a5aaa','#c45c5c','#3a8a7c']
@@ -61,6 +61,7 @@ export default function Home() {
   const [showNewTrip, setShowNewTrip] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { data: session } = useSession()
 
   useEffect(() => {
     const applyTheme = () => {
@@ -144,7 +145,16 @@ useEffect(()=>{
           ))}
         </div>
         <div style={{ padding: '14px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <button onClick={() => signOut({ callbackUrl: '/login' })} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans,sans-serif', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s' }}
+          {session?.user&&(
+  <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',marginBottom:8,borderRadius:10,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
+    {session.user.image&&<img src={session.user.image} alt="" style={{width:30,height:30,borderRadius:'50%',flexShrink:0,border:'2px solid rgba(255,255,255,0.1)'}} />}
+    <div style={{flex:1,minWidth:0}}>
+      <div style={{fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.7)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{session.user.name}</div>
+      <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{session.user.email}</div>
+    </div>
+  </div>
+)}
+<button onClick={() => signOut({ callbackUrl: '/login' })} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans,sans-serif', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)' }}>
             <span style={{ fontSize: 14 }}>↪</span> Cerrar sesión
