@@ -219,10 +219,10 @@ function TabOverview({ trip, items }: any) {
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18}}>
       {weather&&(
-        <div className="fade-up" style={{gridColumn:'1/-1',background:'linear-gradient(135deg,rgba(74,127,165,0.08),rgba(74,127,165,0.03))',borderRadius:16,padding:'20px 24px',border:'1px solid rgba(74,127,165,0.15)',display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}}>
+        <div className="fade-up" style={{gridColumn:'1/-1',background:'linear-gradient(135deg,rgba(74,127,165,0.08),rgba(74,127,165,0.03))',borderRadius:16,padding:'14px 20px',border:'1px solid rgba(74,127,165,0.15)',display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
           <div style={{fontSize:48}}>{weatherIcon(weather.weather[0].id)}</div>
           <div>
-            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:36,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{Math.round(weather.main.temp)}°C</div>
+            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{Math.round(weather.main.temp)}°C</div>
             <div style={{fontSize:12,color:'var(--text-mid)',marginTop:4,textTransform:'capitalize'}}>{weather.weather[0].description}</div>
           </div>
           <div style={{display:'flex',gap:20,marginLeft:'auto',flexWrap:'wrap'}}>

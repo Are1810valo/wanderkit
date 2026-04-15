@@ -98,6 +98,17 @@ useEffect(()=>{
     }
   })
 },[trips])
+const [tripWeather, setTripWeather] = useState<Record<string,any>>({})
+useEffect(()=>{
+  trips.forEach(t=>{
+    if(!tripWeather[t.id]&&t.destination){
+      const city = t.destination.split(',')[0].trim()
+      fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_KEY}&units=metric&lang=es`)
+        .then(r=>r.json()).then(d=>{ if(d.main) setTripWeather(p=>({...p,[t.id]:d})) })
+        .catch(()=>{})
+    }
+  })
+},[trips])
   const ongoing = trips.filter(t => t.status === 'en curso').length
   const upcoming = trips.filter(t => t.status === 'planificado').length
   const finished = trips.filter(t => t.status === 'finalizado').length
@@ -290,6 +301,11 @@ useEffect(()=>{
                         <div style={{ padding: '18px 20px 20px' }}>
                           <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 22, fontWeight: 400, color: 'var(--navy)', lineHeight: 1.2 }}>{t.name}</div>
                           <div style={{ fontSize: 13, color: 'var(--text-mid)', marginTop: 4 }}>📍 {t.destination}</div>
+{tripWeather[t.id]&&<div style={{fontSize:12,color:'var(--text-light)',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
+  <span>{tripWeather[t.id].weather[0].id>=800&&tripWeather[t.id].weather[0].id<801?'☀️':tripWeather[t.id].weather[0].id>=300&&tripWeather[t.id].weather[0].id<600?'🌧':'⛅'}</span>
+  <span>{Math.round(tripWeather[t.id].main.temp)}°C</span>
+  <span style={{textTransform:'capitalize'}}>{tripWeather[t.id].weather[0].description}</span>
+</div>}
                           <div style={{ display: 'flex', gap: 16, marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text-light)' }}>
                             <span>📅 {t.start_date || '—'}</span>
                             <span>💰 {fmtCurrency(t.budget, t.currency)}</span>
