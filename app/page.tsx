@@ -62,6 +62,7 @@ export default function Home() {
   const [selected, setSelected] = useState<string[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState('todos')
+  const [showProfile, setShowProfile] = useState(false)
   const { data: session } = useSession()
 
   useEffect(() => {
@@ -148,15 +149,20 @@ useEffect(()=>{
           ))}
         </div>
         <div style={{ padding: '14px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          {session?.user&&(
-  <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',marginBottom:8,borderRadius:10,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)'}}>
-    {session.user.image&&<img src={session.user.image} alt="" style={{width:30,height:30,borderRadius:'50%',flexShrink:0,border:'2px solid rgba(255,255,255,0.1)'}} />}
+         
+{session?.user&&(
+  <div onClick={()=>setShowProfile(true)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',marginBottom:8,borderRadius:10,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',transition:'all 0.15s'}}
+    onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.08)'}}
+    onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)'}}>
+    {session.user.image&&<img src={session.user.image} alt="" style={{width:34,height:34,borderRadius:'50%',flexShrink:0,border:'2px solid rgba(184,115,51,0.4)'}} />}
     <div style={{flex:1,minWidth:0}}>
-      <div style={{fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.7)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{session.user.name}</div>
+      <div style={{fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.8)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{session.user.name}</div>
       <div style={{fontSize:10,color:'rgba(255,255,255,0.3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{session.user.email}</div>
     </div>
+    <span style={{fontSize:10,color:'rgba(255,255,255,0.2)'}}>›</span>
   </div>
 )}
+
 <button onClick={() => signOut({ callbackUrl: '/login' })} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'DM Sans,sans-serif', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.15s' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = 'rgba(255,255,255,0.4)' }}>
@@ -312,7 +318,32 @@ useEffect(()=>{
           </div>
         )}
       </div>
-
+{showProfile&&session?.user&&(
+  <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.8)',backdropFilter:'blur(12px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:9999,padding:20}} onClick={()=>setShowProfile(false)}>
+    <div style={{background:'var(--bg)',borderRadius:24,padding:'40px',width:'100%',maxWidth:480,border:'1px solid var(--border)'}} onClick={e=>e.stopPropagation()}>
+      <div style={{textAlign:'center',marginBottom:32}}>
+        {session.user.image&&<img src={session.user.image} alt="" style={{width:80,height:80,borderRadius:'50%',border:'3px solid #b87333',marginBottom:16}} />}
+        <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:28,fontWeight:300,color:'var(--navy)'}}>{session.user.name}</div>
+        <div style={{fontSize:13,color:'var(--text-light)',marginTop:4}}>{session.user.email}</div>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:28}}>
+        {[
+          {icon:'🌍',num:trips.length,label:'Total viajes'},
+          {icon:'📍',num:countries,label:'Países'},
+          {icon:'✅',num:finished,label:'Finalizados'},
+          {icon:'✈️',num:ongoing,label:'En curso'},
+        ].map((s,i)=>(
+          <div key={i} style={{background:'var(--bg-card)',borderRadius:14,padding:'16px 20px',border:'1px solid var(--border)',textAlign:'center'}}>
+            <div style={{fontSize:22,marginBottom:6}}>{s.icon}</div>
+            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:32,fontWeight:300,color:'var(--navy)'}}>{s.num}</div>
+            <div style={{fontSize:10,color:'var(--text-light)',fontWeight:600,letterSpacing:'0.1em',textTransform:'uppercase',marginTop:4}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <button onClick={()=>setShowProfile(false)} style={{width:'100%',padding:'12px',background:'transparent',border:'1px solid var(--border)',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>Cerrar</button>
+    </div>
+  </div>
+)}
       {showNewTrip && <NewTripModal onClose={() => setShowNewTrip(false)} onSave={async (data: any) => { await createTrip(data); setShowNewTrip(false); toast('¡Viaje creado! ✈️', 'success') }} />}
     </div>
   )
