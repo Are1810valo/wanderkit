@@ -361,16 +361,16 @@ function NewTripModal({ onClose, onSave }: any) {
     if(cityQuery.length < 3) { setCitySuggestions([]); return }
     const t = setTimeout(()=>{
       setLoadingCities(true)
-      fetch(`https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(cityQuery)}&limit=5&languageCode=es`,{
-        headers:{'X-RapidAPI-Key':process.env.NEXT_PUBLIC_RAPIDAPI_KEY||'','X-RapidAPI-Host':'wft-geo-db.p.rapidapi.com'}
-      }).then(r=>r.json()).then(d=>{ setCitySuggestions(d.data||[]); setLoadingCities(false) }).catch(()=>setLoadingCities(false))
+      fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityQuery)}&format=json&limit=5&addressdetails=1`,{
+        headers:{'Accept-Language':'es','User-Agent':'WanderKit/1.0'}
+      }).then(r=>r.json()).then(d=>{ setCitySuggestions(d||[]); setLoadingCities(false) }).catch(()=>setLoadingCities(false))
     },400)
     return()=>clearTimeout(t)
   },[cityQuery])
 
   const selectCity = (city: any) => {
-    const c = city.city?.toUpperCase()||city.name?.toUpperCase()||''
-    const co = city.country?.toUpperCase()||''
+    const c = (city.address?.city||city.address?.town||city.address?.village||city.address?.county||city.name||'').toUpperCase()
+    const co = (city.address?.country||'').toUpperCase()
     s('city', c); s('country', co)
     setCityQuery(c); setCitySuggestions([])
   }
@@ -389,8 +389,8 @@ function NewTripModal({ onClose, onSave }: any) {
               <div key={i} onClick={()=>selectCity(c)} style={{padding:'10px 14px',cursor:'pointer',fontSize:13,color:'var(--text)',borderBottom:'1px solid var(--border)'}}
                 onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                <span style={{fontWeight:600}}>{(c.city||c.name||'').toUpperCase()}</span>
-                <span style={{color:'var(--text-light)',marginLeft:8}}>{(c.country||'').toUpperCase()}</span>
+                <span style={{fontWeight:600}}>{(c.address?.city||c.address?.town||c.address?.village||c.address?.county||c.name||'').toUpperCase()}</span>
+<span style={{color:'var(--text-light)',marginLeft:8}}>{(c.address?.country||'').toUpperCase()}</span>
               </div>
             ))}
           </div>
