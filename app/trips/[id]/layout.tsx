@@ -281,6 +281,7 @@ export default function TripLayout({ children, params }: { children: React.React
   const [showInvite, setShowInvite] = useState(false)
   const [loadingTrip, setLoadingTrip] = useState(true)
   const [userRole, setUserRole] = useState<'owner'|'escritor'|'lector'>('owner')
+const [weather, setWeather] = useState<any>(null)
 
   useEffect(()=>{
     const apply=()=>document.documentElement.setAttribute('data-theme',new Date().getHours()>=7&&new Date().getHours()<19?'light':'dark')
@@ -304,6 +305,11 @@ export default function TripLayout({ children, params }: { children: React.React
 } catch(e){}
       setAllTrips(res.data)
       setTrip(res.data.find((t:any)=>t.id===id)||null)
+      const found = res.data.find((t:any)=>t.id===id)
+if(found?.destination){
+  fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(found.destination.split(',')[0].trim())}&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_KEY}&units=metric&lang=es`)
+    .then(r=>r.json()).then(d=>{ if(d.main) setWeather(d) }).catch(()=>{})
+}
     } catch(e){ console.error(e) }
     finally{ setLoadingTrip(false) }
   },[])
@@ -428,6 +434,7 @@ export default function TripLayout({ children, params }: { children: React.React
               <div>
                 <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6}}>
                   {trip.status==='en curso'?'🟢 En curso':trip.status==='finalizado'?'🏁 Finalizado':'📋 Planificado'} · {trip.destination}
+{weather&&<span style={{marginLeft:8,fontSize:10,color:'var(--text-light)'}}>· {Math.round(weather.main.temp)}°C {weather.weather[0].id>=800&&weather.weather[0].id<801?'☀️':weather.weather[0].id>=300&&weather.weather[0].id<600?'🌧':'⛅'}</span>}
                 </div>
                 <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:34,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip.name}</div>
                 <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.start_date} → {trip.end_date} · {fmt(trip.budget,trip.currency)}</div>
