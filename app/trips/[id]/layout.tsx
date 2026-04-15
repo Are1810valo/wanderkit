@@ -438,15 +438,15 @@ if(found?.destination){
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:18,flexWrap:'wrap',gap:10}}>
               <div>
                 <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6}}>
-                  {trip.status==='en curso'?'🟢 En curso':trip.status==='finalizado'?'🏁 Finalizado':'📋 Planificado'} · {trip.destination}
-{weather&&<span style={{marginLeft:8,fontSize:11,color:'var(--text-light)'}}>· {weather.weather[0].id>=800&&weather.weather[0].id<801?'☀️':weather.weather[0].id>=300&&weather.weather[0].id<600?'🌧':'⛅'} {Math.round(weather.main.temp)}°C <span style={{textTransform:'capitalize'}}>{weather.weather[0].description}</span></span>}
-{forecast.length>0&&<div style={{fontSize:10,color:'var(--text-light)',marginTop:3,display:'flex',gap:12}}>
-  {['Hoy','Mañana','En 2 días','En 3 días'].map((d,i)=>forecast[i]&&(
-    <span key={i}>{d} {Math.round(forecast[i].main.temp)}° {forecast[i].weather[0].id>=800&&forecast[i].weather[0].id<801?'☀️':forecast[i].weather[0].id>=300&&forecast[i].weather[0].id<600?'🌧':'⛅'}</span>
-  ))}
-</div>}
+                  {trip.status==='en curso'?'🟢 En curso':trip.status==='finalizado'?'🏁 Finalizado':'📋 Planificado'}
                 </div>
                 <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:34,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip.name}</div>
+                <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.destination}{weather&&<span style={{marginLeft:8}}>· {weather.weather[0].id>=800&&weather.weather[0].id<801?'☀️':weather.weather[0].id>=300&&weather.weather[0].id<600?'🌧':'⛅'} {Math.round(weather.main.temp)}°C <span style={{textTransform:'capitalize',color:'var(--text-light)'}}>{weather.weather[0].description}</span></span>}</div>
+                {forecast.length>0&&<div style={{fontSize:11,color:'var(--text-light)',marginTop:4,display:'flex',gap:14,flexWrap:'wrap'}}>
+                  {['Hoy','Mañana','En 2 días','En 3 días'].map((d,i)=>forecast[i]&&(
+                    <span key={i} style={{display:'flex',alignItems:'center',gap:3}}>{d} <strong style={{color:'var(--text-mid)'}}>{Math.round(forecast[i].main.temp)}°</strong> {forecast[i].weather[0].id>=800&&forecast[i].weather[0].id<801?'☀️':forecast[i].weather[0].id>=300&&forecast[i].weather[0].id<600?'🌧':'⛅'}</span>
+                  ))}
+                </div>}
                 <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.start_date} → {trip.end_date} · {fmt(trip.budget,trip.currency)}</div>
               </div>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
