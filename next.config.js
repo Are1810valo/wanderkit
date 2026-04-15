@@ -23,7 +23,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://*.openstreetmap.org https://*.tile.openstreetmap.org https://images.unsplash.com https://*.unsplash.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
               "frame-src https://www.openstreetmap.org",
-              "connect-src 'self' https://api.unsplash.com https://api.openweathermap.org",
+"connect-src 'self' https://api.unsplash.com https://api.openweathermap.org https://wft-geo-db.p.rapidapi.com",
             ].join('; ')
           },
           // Controla qué features del browser puede usar el sitio

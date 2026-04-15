@@ -350,13 +350,53 @@ useEffect(()=>{
 }
 
 function NewTripModal({ onClose, onSave }: any) {
-  const [f, setF] = useState({ name: '', destination: '', startDate: '', endDate: '', budget: '', currency: 'USD', status: 'planificado', colorIdx: 0 })
+  const [f, setF] = useState({ name: '', city: '', country: '', startDate: '', endDate: '', budget: '', currency: 'USD', status: 'planificado', colorIdx: 0 })
+  const [cityQuery, setCityQuery] = useState('')
+  const [citySuggestions, setCitySuggestions] = useState<any[]>([])
+  const [loadingCities, setLoadingCities] = useState(false)
   const s = (k: string, v: any) => setF(p => ({ ...p, [k]: v }))
   const handleKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter') e.preventDefault() }
+
+  useEffect(()=>{
+    if(cityQuery.length < 3) { setCitySuggestions([]); return }
+    const t = setTimeout(()=>{
+      setLoadingCities(true)
+      fetch(`https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${encodeURIComponent(cityQuery)}&limit=5&languageCode=es`,{
+        headers:{'X-RapidAPI-Key':process.env.NEXT_PUBLIC_RAPIDAPI_KEY||'','X-RapidAPI-Host':'wft-geo-db.p.rapidapi.com'}
+      }).then(r=>r.json()).then(d=>{ setCitySuggestions(d.data||[]); setLoadingCities(false) }).catch(()=>setLoadingCities(false))
+    },400)
+    return()=>clearTimeout(t)
+  },[cityQuery])
+
+  const selectCity = (city: any) => {
+    const c = city.city?.toUpperCase()||city.name?.toUpperCase()||''
+    const co = city.country?.toUpperCase()||''
+    s('city', c); s('country', co)
+    setCityQuery(c); setCitySuggestions([])
+  }
+
   return (
     <Modal title="Nuevo viaje" onClose={onClose}>
-      <FG label="Nombre del viaje"><input className="form-input" value={f.name} onChange={e => s('name', e.target.value)} onKeyDown={handleKey} placeholder="Ej: Brasil 2025" autoFocus /></FG>
-      <FG label="Destino"><input className="form-input" value={f.destination} onChange={e => s('destination', e.target.value)} onKeyDown={handleKey} placeholder="Ej: Río de Janeiro, Brasil" /></FG>
+      <FG label="Nombre del viaje"><input className="form-input" value={f.name} onChange={e => s('name', e.target.value.toUpperCase())} onKeyDown={handleKey} placeholder="Ej: BRASIL 2025" autoFocus /></FG>
+      <div style={{position:'relative'}}>
+        <FG label="Ciudad">
+          <input className="form-input" value={cityQuery} onChange={e=>setCityQuery(e.target.value.toUpperCase())} onKeyDown={handleKey} placeholder="Ej: SAN ANDRÉS" />
+          {loadingCities&&<div style={{position:'absolute',right:12,top:38,fontSize:11,color:'var(--text-light)'}}>⏳</div>}
+        </FG>
+        {citySuggestions.length>0&&(
+          <div style={{position:'absolute',top:'100%',left:0,right:0,background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:10,zIndex:100,overflow:'hidden',boxShadow:'var(--shadow-hover)'}}>
+            {citySuggestions.map((c:any,i:number)=>(
+              <div key={i} onClick={()=>selectCity(c)} style={{padding:'10px 14px',cursor:'pointer',fontSize:13,color:'var(--text)',borderBottom:'1px solid var(--border)'}}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <span style={{fontWeight:600}}>{(c.city||c.name||'').toUpperCase()}</span>
+                <span style={{color:'var(--text-light)',marginLeft:8}}>{(c.country||'').toUpperCase()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <FG label="País"><input className="form-input" value={f.country} onChange={e=>s('country',e.target.value.toUpperCase())} onKeyDown={handleKey} placeholder="Ej: COLOMBIA" /></FG>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <FG label="Fecha inicio"><input className="form-input" type="date" value={f.startDate} onChange={e => { s('startDate', e.target.value); if (f.endDate && f.endDate < e.target.value) s('endDate', '') }} /></FG>
         <FG label="Fecha fin"><input className="form-input" type="date" value={f.endDate} min={f.startDate || undefined} onChange={e => s('endDate', e.target.value)} /></FG>
@@ -378,7 +418,7 @@ function NewTripModal({ onClose, onSave }: any) {
       </FG>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 28 }}>
         <Btn2 onClick={onClose}>Cancelar</Btn2>
-        <Btn2 onClick={() => f.name && onSave({ ...f, budget: parseFloat(f.budget) || 0 })} primary>Crear viaje ✈️</Btn2>
+        <Btn2 onClick={() => f.name && onSave({ ...f, destination: `${f.city}${f.country?', '+f.country:''}`, budget: parseFloat(f.budget) || 0 })} primary>Crear viaje ✈️</Btn2>
       </div>
     </Modal>
   )
