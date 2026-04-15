@@ -125,7 +125,7 @@ export default function TabPage() {
   const tripId  = params.id as string
   const tab     = params.tab as string
   const [trip, setTrip] = useState<any>(null)
-const { items, loading, userRole, addItem, updateItem, deleteItem, refetch } = useTripContext()
+  const { items, loading, userRole, addItem, updateItem, deleteItem, refetch } = useTripContext()
 
   useEffect(()=>{
     axios.get('/api/trips')
@@ -136,45 +136,46 @@ const { items, loading, userRole, addItem, updateItem, deleteItem, refetch } = u
   const isReader = userRole === 'lector'
   const [userEmail, setUserEmail] = useState('')
   useEffect(()=>{ fetch('/api/auth/session').then(r=>r.json()).then(s=>setUserEmail(s?.user?.email||'')) },[])
-  const add = useCallback(async(type:string,data:any)=>{ 
-  const email = userEmail || (await fetch('/api/auth/session').then(r=>r.json()).then(s=>s?.user?.email||''))
-  console.log('ADD email:', email, 'data:', data)
-await addItem(type,{...data,created_by:email}); toast('Agregado correctamente')
-},[addItem,userEmail])
+
+  const add = useCallback(async(type:string,data:any)=>{
+    const email = userEmail || (await fetch('/api/auth/session').then(r=>r.json()).then(s=>s?.user?.email||''))
+    await addItem(type,{...data,created_by:email}); toast('Agregado correctamente')
+  },[addItem,userEmail])
   const upd = useCallback(async(type:string,data:any)=>{ await updateItem(type,data); toast('Guardado') },[updateItem])
   const del = useCallback(async(type:string,id:string)=>{ await deleteItem(type,id); toast('Eliminado','info') },[deleteItem])
-  const [pullY, setPullY] = useState(0)
-const startY = useRef(0)
-const pulling = useRef(false)
 
-useEffect(()=>{
-  const el = document.querySelector('.tab-content-responsive') as HTMLElement
-  if(!el) return
-  const onStart=(e:TouchEvent)=>{ startY.current=e.touches[0].clientY }
-  const onMove=(e:TouchEvent)=>{
-    const dy=e.touches[0].clientY-startY.current
-    if(dy>0&&el.scrollTop===0){setPullY(Math.min(dy,80));e.preventDefault()}
-  }
-  const onEnd=async()=>{
-    if(pullY>60&&!pulling.current){pulling.current=true;await refetch();pulling.current=false}
-    setPullY(0)
-  }
-  el.addEventListener('touchstart',onStart,{passive:true})
-  el.addEventListener('touchmove',onMove,{passive:false})
-  el.addEventListener('touchend',onEnd)
-  return()=>{el.removeEventListener('touchstart',onStart);el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEnd)}
-},[pullY,refetch])
+  const [pullY, setPullY] = useState(0)
+  const startY = useRef(0)
+  const pulling = useRef(false)
+
+  useEffect(()=>{
+    const el = document.querySelector('.tab-content-responsive') as HTMLElement
+    if(!el) return
+    const onStart=(e:TouchEvent)=>{ startY.current=e.touches[0].clientY }
+    const onMove=(e:TouchEvent)=>{
+      const dy=e.touches[0].clientY-startY.current
+      if(dy>0&&el.scrollTop===0){setPullY(Math.min(dy,80));e.preventDefault()}
+    }
+    const onEnd=async()=>{
+      if(pullY>60&&!pulling.current){pulling.current=true;await refetch();pulling.current=false}
+      setPullY(0)
+    }
+    el.addEventListener('touchstart',onStart,{passive:true})
+    el.addEventListener('touchmove',onMove,{passive:false})
+    el.addEventListener('touchend',onEnd)
+    return()=>{el.removeEventListener('touchstart',onStart);el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEnd)}
+  },[pullY,refetch])
 
   return (
     <div className="tab-content-responsive fade-in" style={{padding:'32px 44px 64px'}}>
       <Toasts />
       {pullY>0&&(
-  <div style={{position:'fixed',top:0,left:0,right:0,display:'flex',justifyContent:'center',zIndex:100,pointerEvents:'none',transform:`translateY(${pullY-40}px)`,transition:'transform 0.1s'}}>
-    <div style={{background:'var(--bg-card)',borderRadius:20,padding:'6px 14px',fontSize:12,color:'var(--text-mid)',boxShadow:'var(--shadow-card)',display:'flex',alignItems:'center',gap:6}}>
-      {pullY>60?'↑ Suelta para actualizar':'↓ Desliza para actualizar'}
-    </div>
-  </div>
-)}
+        <div style={{position:'fixed',top:0,left:0,right:0,display:'flex',justifyContent:'center',zIndex:100,pointerEvents:'none',transform:`translateY(${pullY-40}px)`,transition:'transform 0.1s'}}>
+          <div style={{background:'var(--bg-card)',borderRadius:20,padding:'6px 14px',fontSize:12,color:'var(--text-mid)',boxShadow:'var(--shadow-card)',display:'flex',alignItems:'center',gap:6}}>
+            {pullY>60?'↑ Suelta para actualizar':'↓ Desliza para actualizar'}
+          </div>
+        </div>
+      )}
       {loading ? <>{[1,2,3,4].map(i=><Skel key={i} h={i===1?180:90} />)}</> : (
         <>
           {tab==='overview'  && <TabOverview   trip={trip} items={items} />}
@@ -194,6 +195,13 @@ useEffect(()=>{
 }
 
 function TabOverview({ trip, items }: any) {
+  const [weather, setWeather] = useState<any>(null)
+  useEffect(()=>{
+    if(!trip?.destination) return
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(trip.destination.split(',')[0].trim())}&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_KEY}&units=metric&lang=es`)
+      .then(r=>r.json()).then(d=>{ if(d.main) setWeather(d) }).catch(()=>{})
+  },[trip?.destination])
+
   const est  = items?.expenses?.reduce((s:number,e:any)=>s+(e.estimated||0),0)||0
   const real = items?.expenses?.reduce((s:number,e:any)=>s+(e.real||0),0)||0
   const budget = trip?.budget||est||1
@@ -205,8 +213,25 @@ function TabOverview({ trip, items }: any) {
   const ck   = items?.checklist?.filter((i:any)=>i.checked).length||0
   const ckT  = items?.checklist?.length||0
   const fl   = items?.flights?.length||0
+
+  const weatherIcon = (id:number) => id>=200&&id<300?'⛈':id>=300&&id<600?'🌧':id>=600&&id<700?'❄️':id>=700&&id<800?'🌫':id===800?'☀️':'⛅'
+
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18}}>
+      {weather&&(
+        <div className="fade-up" style={{gridColumn:'1/-1',background:'linear-gradient(135deg,rgba(74,127,165,0.08),rgba(74,127,165,0.03))',borderRadius:16,padding:'20px 24px',border:'1px solid rgba(74,127,165,0.15)',display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}}>
+          <div style={{fontSize:48}}>{weatherIcon(weather.weather[0].id)}</div>
+          <div>
+            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:36,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{Math.round(weather.main.temp)}°C</div>
+            <div style={{fontSize:12,color:'var(--text-mid)',marginTop:4,textTransform:'capitalize'}}>{weather.weather[0].description}</div>
+          </div>
+          <div style={{display:'flex',gap:20,marginLeft:'auto',flexWrap:'wrap'}}>
+            {[{l:'Sensación',v:`${Math.round(weather.main.feels_like)}°C`},{l:'Humedad',v:`${weather.main.humidity}%`},{l:'Viento',v:`${Math.round(weather.wind.speed*3.6)} km/h`}]
+              .map((w,i)=><div key={i} style={{textAlign:'center'}}><div style={{fontSize:11,color:'var(--text-light)',marginBottom:2}}>{w.l}</div><div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{w.v}</div></div>)}
+          </div>
+          <div style={{fontSize:10,color:'var(--text-light)',width:'100%'}}>📍 Clima actual en {weather.name}</div>
+        </div>
+      )}
       <div className="fade-up" style={{gridColumn:'1/-1',background:'var(--bg-card)',borderRadius:16,padding:'26px 30px',border:'1px solid var(--border)',boxShadow:'var(--shadow-card)'}}>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:18}}>Presupuesto — Plan vs Real</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:real>0?20:0}}>
@@ -662,19 +687,16 @@ function TabDocuments({ trip, items, add, upd, del, isReader }: any) {
   const DI: Record<string,string> = {vuelo:'✈️',hotel:'🏨',seguro:'🛡️',tour:'🎟️',visa:'📋',otro:'📄'}
   const tengo = docs.filter((d:any)=>d.has_it||d.packed).length
   const maleta = docs.filter((d:any)=>d.packed).length
-
   const nextState = (d:any) => {
     if(!d.has_it&&!d.packed) return upd('documents',{...d,has_it:1,packed:0})
     if(d.has_it&&!d.packed) return upd('documents',{...d,has_it:1,packed:1})
     return upd('documents',{...d,has_it:0,packed:0})
   }
-
   const stateLabel = (d:any) => {
     if(d.packed) return {icon:'🧳',label:'En maleta',bg:'rgba(184,115,51,0.1)',color:'#b87333'}
     if(d.has_it) return {icon:'✅',label:'Lo tengo',bg:'rgba(74,124,89,0.1)',color:'#4a7c59'}
     return {icon:'⬜',label:'Sin marcar',bg:'var(--bg-cream)',color:'var(--text-light)'}
   }
-
   return (
     <div className="fade-in">
       {docs.length>0&&(
@@ -843,7 +865,7 @@ function TabProposals({ trip, items, add, upd, del, isReader }: any) {
           </div>
           <div style={{padding:'8px 12px',borderRadius:10,fontSize:12,fontWeight:600,background:p.my_vote==='si'?'rgba(74,124,89,0.08)':p.my_vote==='no'?'rgba(196,92,92,0.08)':'rgba(184,115,51,0.08)',color:p.my_vote==='si'?'#4a7c59':p.my_vote==='no'?'#c45c5c':'#b87333',border:`1px solid ${p.my_vote==='si'?'rgba(74,124,89,0.18)':p.my_vote==='no'?'rgba(196,92,92,0.18)':'rgba(184,115,51,0.18)'}`}}>
             {p.status==='aprobada'?'✅ Propuesta aprobada':p.status==='rechazada'?'❌ Propuesta rechazada':p.my_vote==='si'?'👍 Tu voto: Sí':p.my_vote==='no'?'👎 Tu voto: No':p.my_vote==='quizas'?'🤔 Tu voto: Quizás':'🗳 Sin votar aún'}
-{p.module&&p.module!=='general'&&<div style={{fontSize:11,color:'var(--text-light)',marginTop:4}}>📌 {p.module==='itinerary'?'Itinerario':p.module==='places'?'Lugares':p.module==='expenses'?'Gastos':'Equipaje'}{p.status==='aprobada'?' — ítem creado ✅':''}</div>}
+            {p.module&&p.module!=='general'&&<div style={{fontSize:11,color:'var(--text-light)',marginTop:4}}>📌 {p.module==='itinerary'?'Itinerario':p.module==='places'?'Lugares':p.module==='expenses'?'Gastos':'Vuelos'}{p.status==='aprobada'?' — ítem creado ✅':''}</div>}
           </div>
         </div>
       ))}
@@ -873,7 +895,6 @@ function ProposalForm({ onSave }: any) {
       </FG>
       <FG label="Título"><input className="form-input" value={f.title} onChange={e=>s('title',e.target.value)} onKeyDown={hk} autoFocus placeholder={f.module==='flights'?'Ej: Vuelo a Miami':f.module==='itinerary'?'Ej: Visitar el centro histórico':f.module==='places'?'Ej: Torre Eiffel':f.module==='expenses'?'Ej: Hotel compartido':'Título de la propuesta'} /></FG>
       <FG label="Descripción"><textarea className="form-input" rows={2} value={f.description} onChange={e=>s('description',e.target.value)} placeholder="Explica la propuesta al grupo..." /></FG>
-
       {f.module==='itinerary'&&(
         <div style={{padding:'12px 14px',background:'var(--bg-cream)',borderRadius:12,border:'1px solid var(--border)',marginBottom:14}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:10}}>Detalles actividad</div>
@@ -883,7 +904,6 @@ function ProposalForm({ onSave }: any) {
           </div>
         </div>
       )}
-
       {f.module==='flights'&&(
         <div style={{padding:'12px 14px',background:'var(--bg-cream)',borderRadius:12,border:'1px solid var(--border)',marginBottom:14}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:10}}>Detalles vuelo</div>
@@ -894,7 +914,6 @@ function ProposalForm({ onSave }: any) {
           <FG label="Fecha"><input className="form-input" type="date" value={f.date} onChange={e=>s('date',e.target.value)} /></FG>
         </div>
       )}
-
       {f.module==='expenses'&&(
         <div style={{padding:'12px 14px',background:'var(--bg-cream)',borderRadius:12,border:'1px solid var(--border)',marginBottom:14}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:10}}>Detalles gasto</div>
@@ -904,7 +923,6 @@ function ProposalForm({ onSave }: any) {
           </div>
         </div>
       )}
-
       <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>Proponer</Btn></div>
     </div>
   )
