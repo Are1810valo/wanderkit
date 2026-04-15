@@ -61,6 +61,7 @@ export default function Home() {
   const [showNewTrip, setShowNewTrip] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [filterStatus, setFilterStatus] = useState('todos')
   const { data: session } = useSession()
 
   useEffect(() => {
@@ -245,6 +246,11 @@ useEffect(()=>{
                     <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 28, fontWeight: 400, color: 'var(--navy)' }}>Mis viajes</div>
                     <div style={{ fontSize: 12, color: 'var(--text-light)' }}>{trips.length} viaje{trips.length !== 1 ? 's' : ''}</div>
                   </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {[['todos','Todos'],['planificado','Planificado'],['en curso','En curso'],['finalizado','Finalizado']].map(([v,l])=>(
+                      <button key={v} onClick={()=>setFilterStatus(v)} style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${filterStatus===v?'#b87333':'var(--border)'}`, background: filterStatus===v?'rgba(184,115,51,0.1)':'transparent', color: filterStatus===v?'#b87333':'var(--text-light)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}>{l}</button>
+                    ))}
+                  </div>
                   {selected.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ fontSize: 13, color: 'var(--text-mid)', fontWeight: 500 }}>{selected.length} seleccionado{selected.length > 1 ? 's' : ''}</span>
@@ -256,7 +262,7 @@ useEffect(()=>{
                   )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 20 }}>
-                  {trips.map((t, i) => {
+                  {trips.filter(t=>filterStatus==='todos'||t.status===filterStatus).map((t, i) => {
                     const sc = statusConfig[t.status] || statusConfig.planificado
                     const color = tripColors[t.color_idx ?? i % tripColors.length]
                     const isSelected = selected.includes(t.id)
