@@ -100,6 +100,7 @@ useEffect(()=>{
   const upcoming = trips.filter(t => t.status === 'planificado').length
   const finished = trips.filter(t => t.status === 'finalizado').length
   const countries = [...new Set(trips.map(t => t.destination?.split(',').pop()?.trim()).filter(Boolean))].length
+  const totalBudget = trips.reduce((s,t)=>s+(t.budget||0),0)
 
   const statusConfig: Record<string, any> = {
     planificado: { label: 'Planificado', bg: 'rgba(74,127,165,0.1)', color: '#4a7fa5' },
@@ -221,8 +222,14 @@ useEffect(()=>{
             {/* Stats — solo si hay viajes */}
             {trips.length > 0 && (
               <div className="fade-up-2 responsive-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, marginBottom: 40, background: 'var(--border)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                {[{ num: trips.length, label: 'Total viajes' }, { num: finished, label: 'Finalizados' }, { num: countries, label: 'Países' }, { num: ongoing, label: 'En curso' }].map((s, i) => (
+                {[
+                  { num: trips.length, label: 'Total viajes', icon: '🌍' },
+                  { num: countries, label: 'Países', icon: '📍' },
+                  { num: finished, label: 'Finalizados', icon: '✅' },
+                  { num: ongoing, label: 'En curso', icon: '✈️' }
+                ].map((s, i) => (
                   <div key={i} style={{ background: 'var(--bg-card)', padding: '20px 24px' }}>
+                    <div style={{ fontSize: 20, marginBottom: 8 }}>{s.icon}</div>
                     <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 40, fontWeight: 300, color: 'var(--navy)', lineHeight: 1 }}><AnimatedNumber value={s.num} /></div>
                     <div style={{ fontSize: 10, color: 'var(--text-light)', marginTop: 4, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.label}</div>
                   </div>
