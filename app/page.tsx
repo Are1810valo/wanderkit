@@ -90,7 +90,7 @@ export default function Home() {
 useEffect(()=>{
   trips.forEach(t=>{
     if(!tripPhotos[t.id]&&t.destination){
-      fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(t.destination.split(',')[0].trim())}&per_page=1&orientation=landscape`,{headers:{'Authorization':`Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`}})
+      fetch(`https://api.unsplash.com/search/photos?query=$encodeURIComponent(t.destination)&per_page=1&orientation=landscape`,{headers:{'Authorization':`Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`}})
         .then(r=>r.json()).then(d=>{ if(d.results?.[0]) setTripPhotos(p=>({...p,[t.id]:d.results[0].urls.regular})) })
         .catch(()=>{})
     }
