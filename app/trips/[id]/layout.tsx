@@ -442,10 +442,12 @@ if(found?.destination){
                 </div>
                 <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:34,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip.name}</div>
                 <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.destination}{weather&&<span style={{marginLeft:8}}>· {weather.weather[0].id>=800&&weather.weather[0].id<801?'☀️':weather.weather[0].id>=300&&weather.weather[0].id<600?'🌧':'⛅'} {Math.round(weather.main.temp)}°C <span style={{textTransform:'capitalize',color:'var(--text-light)'}}>{weather.weather[0].description}</span></span>}</div>
-                {forecast.length>0&&<div style={{fontSize:11,color:'var(--text-light)',marginTop:4,display:'flex',gap:14,flexWrap:'wrap'}}>
-                  {['Hoy','Mañana','En 2 días','En 3 días'].map((d,i)=>forecast[i]&&(
-                    <span key={i} style={{display:'flex',alignItems:'center',gap:3}}>{d} <strong style={{color:'var(--text-mid)'}}>{Math.round(forecast[i].main.temp)}°</strong> {forecast[i].weather[0].id>=800&&forecast[i].weather[0].id<801?'☀️':forecast[i].weather[0].id>=300&&forecast[i].weather[0].id<600?'🌧':'⛅'}</span>
-                  ))}
+                {forecast.length>1&&<div style={{fontSize:11,color:'var(--text-light)',marginTop:4,display:'flex',gap:14,flexWrap:'wrap'}}>
+                  {forecast.slice(1).map((f:any,i:number)=>{
+                    const dia = new Date(f.dt*1000).toLocaleDateString('es-CL',{weekday:'long'})
+                    const icon = f.weather[0].id>=800&&f.weather[0].id<801?'☀️':f.weather[0].id>=300&&f.weather[0].id<600?'🌧':'⛅'
+                    return <span key={i} style={{display:'flex',alignItems:'center',gap:3}}><span style={{textTransform:'capitalize'}}>{dia}</span> <strong style={{color:'var(--text-mid)'}}>{Math.round(f.main.temp)}°</strong> {icon}</span>
+                  })}
                 </div>}
                 <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.start_date} → {trip.end_date} · {fmt(trip.budget,trip.currency)}</div>
               </div>
