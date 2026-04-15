@@ -150,7 +150,7 @@ export default function TabPage() {
 
   useEffect(()=>{
     const el = document.querySelector('.tab-content-responsive') as HTMLElement
-    if(!el) return
+    if(!el||typeof window==='undefined') return
     const onStart=(e:TouchEvent)=>{ startY.current=e.touches[0].clientY }
     const onMove=(e:TouchEvent)=>{
       const dy=e.touches[0].clientY-startY.current
