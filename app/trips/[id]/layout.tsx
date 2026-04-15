@@ -282,6 +282,7 @@ export default function TripLayout({ children, params }: { children: React.React
   const [loadingTrip, setLoadingTrip] = useState(true)
   const [userRole, setUserRole] = useState<'owner'|'escritor'|'lector'>('owner')
 const [weather, setWeather] = useState<any>(null)
+const [forecast, setForecast] = useState<any[]>([])
 
   useEffect(()=>{
     const apply=()=>document.documentElement.setAttribute('data-theme',new Date().getHours()>=7&&new Date().getHours()<19?'light':'dark')
@@ -307,8 +308,12 @@ const [weather, setWeather] = useState<any>(null)
       setTrip(res.data.find((t:any)=>t.id===id)||null)
       const found = res.data.find((t:any)=>t.id===id)
 if(found?.destination){
-  fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(found.destination.split(',')[0].trim())}&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_KEY}&units=metric&lang=es`)
+  const city = encodeURIComponent(found.destination.split(',')[0].trim())
+  const key = process.env.NEXT_PUBLIC_OPENWEATHER_KEY
+  fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${key}&units=metric&lang=es`)
     .then(r=>r.json()).then(d=>{ if(d.main) setWeather(d) }).catch(()=>{})
+  fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${key}&units=metric&lang=es&cnt=4`)
+    .then(r=>r.json()).then(d=>{ if(d.list) setForecast(d.list) }).catch(()=>{})
 }
     } catch(e){ console.error(e) }
     finally{ setLoadingTrip(false) }
@@ -434,7 +439,12 @@ if(found?.destination){
               <div>
                 <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6}}>
                   {trip.status==='en curso'?'🟢 En curso':trip.status==='finalizado'?'🏁 Finalizado':'📋 Planificado'} · {trip.destination}
-{weather&&<span style={{marginLeft:8,fontSize:10,color:'var(--text-light)'}}>· {Math.round(weather.main.temp)}°C {weather.weather[0].id>=800&&weather.weather[0].id<801?'☀️':weather.weather[0].id>=300&&weather.weather[0].id<600?'🌧':'⛅'}</span>}
+{weather&&<span style={{marginLeft:8,fontSize:11,color:'var(--text-light)'}}>· {weather.weather[0].id>=800&&weather.weather[0].id<801?'☀️':weather.weather[0].id>=300&&weather.weather[0].id<600?'🌧':'⛅'} {Math.round(weather.main.temp)}°C <span style={{textTransform:'capitalize'}}>{weather.weather[0].description}</span></span>}
+{forecast.length>0&&<div style={{fontSize:10,color:'var(--text-light)',marginTop:3,display:'flex',gap:12}}>
+  {['Hoy','Mañana','En 2 días','En 3 días'].map((d,i)=>forecast[i]&&(
+    <span key={i}>{d} {Math.round(forecast[i].main.temp)}° {forecast[i].weather[0].id>=800&&forecast[i].weather[0].id<801?'☀️':forecast[i].weather[0].id>=300&&forecast[i].weather[0].id<600?'🌧':'⛅'}</span>
+  ))}
+</div>}
                 </div>
                 <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:34,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip.name}</div>
                 <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.start_date} → {trip.end_date} · {fmt(trip.budget,trip.currency)}</div>
