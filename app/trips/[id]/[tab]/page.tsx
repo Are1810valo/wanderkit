@@ -195,12 +195,7 @@ export default function TabPage() {
 }
 
 function TabOverview({ trip, items }: any) {
-  const [weather, setWeather] = useState<any>(null)
-  useEffect(()=>{
-    if(!trip?.destination) return
-    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(trip.destination.split(',')[0].trim())}&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_KEY}&units=metric&lang=es`)
-      .then(r=>r.json()).then(d=>{ if(d.main) setWeather(d) }).catch(()=>{})
-  },[trip?.destination])
+  
 
   const est  = items?.expenses?.reduce((s:number,e:any)=>s+(e.estimated||0),0)||0
   const real = items?.expenses?.reduce((s:number,e:any)=>s+(e.real||0),0)||0
@@ -214,24 +209,11 @@ function TabOverview({ trip, items }: any) {
   const ckT  = items?.checklist?.length||0
   const fl   = items?.flights?.length||0
 
-  const weatherIcon = (id:number) => id>=200&&id<300?'⛈':id>=300&&id<600?'🌧':id>=600&&id<700?'❄️':id>=700&&id<800?'🌫':id===800?'☀️':'⛅'
+  
 
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:18}}>
-      {weather&&(
-        <div className="fade-up" style={{gridColumn:'1/-1',background:'linear-gradient(135deg,rgba(74,127,165,0.08),rgba(74,127,165,0.03))',borderRadius:16,padding:'14px 20px',border:'1px solid rgba(74,127,165,0.15)',display:'flex',alignItems:'center',gap:16,flexWrap:'wrap'}}>
-          <div style={{fontSize:48}}>{weatherIcon(weather.weather[0].id)}</div>
-          <div>
-            <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{Math.round(weather.main.temp)}°C</div>
-            <div style={{fontSize:12,color:'var(--text-mid)',marginTop:4,textTransform:'capitalize'}}>{weather.weather[0].description}</div>
-          </div>
-          <div style={{display:'flex',gap:20,marginLeft:'auto',flexWrap:'wrap'}}>
-            {[{l:'Sensación',v:`${Math.round(weather.main.feels_like)}°C`},{l:'Humedad',v:`${weather.main.humidity}%`},{l:'Viento',v:`${Math.round(weather.wind.speed*3.6)} km/h`}]
-              .map((w,i)=><div key={i} style={{textAlign:'center'}}><div style={{fontSize:11,color:'var(--text-light)',marginBottom:2}}>{w.l}</div><div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{w.v}</div></div>)}
-          </div>
-          <div style={{fontSize:10,color:'var(--text-light)',width:'100%'}}>📍 Clima actual en {weather.name}</div>
-        </div>
-      )}
+      
       <div className="fade-up" style={{gridColumn:'1/-1',background:'var(--bg-card)',borderRadius:16,padding:'26px 30px',border:'1px solid var(--border)',boxShadow:'var(--shadow-card)'}}>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:18}}>Presupuesto — Plan vs Real</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:real>0?20:0}}>
