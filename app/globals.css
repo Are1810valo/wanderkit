@@ -112,6 +112,9 @@ textarea.form-input { resize: vertical; line-height: 1.6; }
     z-index: 500;
     overflow-y: auto !important; 
   }
+  .responsive-grid-stats { grid-template-columns: repeat(2,1fr) !important; }
+.responsive-padding { padding: 20px 16px 100px !important; }
+  .responsive-grid-1 { grid-template-columns: repeat(2,1fr) !important; }
   .desktop-trip-header { display: none !important; }
 .mobile-trip-bar { display: block !important; }
 .mobile-bottom-nav { display: flex !important; flex-direction: column; }
