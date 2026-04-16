@@ -270,6 +270,7 @@ export default function TripLayout({ children, params }: { children: React.React
   const [userRole, setUserRole]       = useState<'owner'|'escritor'|'lector'>('owner')
   const [weather, setWeather]         = useState<any>(null)
   const [forecast, setForecast]       = useState<any[]>([])
+  const [rate, setRate]               = useState<any>(null)
 
   useEffect(()=>{
     const apply=()=>document.documentElement.setAttribute('data-theme',new Date().getHours()>=7&&new Date().getHours()<19?'light':'dark')
@@ -300,6 +301,10 @@ export default function TripLayout({ children, params }: { children: React.React
           .then(r=>r.json()).then(d=>{ if(d.main) setWeather(d) }).catch(()=>{})
         fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${key}&units=metric&lang=es&cnt=4`)
           .then(r=>r.json()).then(d=>{ if(d.list) setForecast(d.list) }).catch(()=>{})
+            if(found.currency && found.currency!=='USD'){
+        fetch(`https://api.exchangerate-api.com/v4/latest/USD`)
+          .then(r=>r.json()).then(d=>{ if(d.rates?.[found.currency]) setRate({from:'USD',to:found.currency,rate:d.rates[found.currency]}) }).catch(()=>{})
+      }
       }
     } catch(e){ console.error(e) }
     finally{ setLoadingTrip(false) }
@@ -420,7 +425,7 @@ export default function TripLayout({ children, params }: { children: React.React
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:18,flexWrap:'wrap',gap:10}}>
               <div>
                 <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--text-light)',marginBottom:6}}>
-                  {trip.status==='en curso'?'🟢 En curso':trip.status==='finalizado'?'🏁 Finalizado':'📋 Planificado'}
+                  {trip.status==='en curso'?<span style={{display:'inline-flex',alignItems:'center',gap:6}}><span style={{width:8,height:8,borderRadius:'50%',background:'#4a7c59',boxShadow:'0 0 0 3px rgba(74,124,89,0.3)',animation:'pulse 2s infinite',display:'inline-block'}} />EN VIVO</span>:trip.status==='finalizado'?'🏁 Finalizado':'📋 Planificado'}
                 </div>
                 <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:34,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip.name}</div>
                 <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>
@@ -433,7 +438,10 @@ export default function TripLayout({ children, params }: { children: React.React
                     return <span key={i} style={{display:'flex',alignItems:'center',gap:3}}><span style={{textTransform:'capitalize'}}>{dia}</span> <strong style={{color:'var(--text-mid)'}}>{Math.round(f.main.temp)}°</strong> {wIcon(f.weather[0].id)}</span>
                   })}
                 </div>}
-                <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.start_date} → {trip.end_date} · {fmt(trip.budget,trip.currency)}</div>
+                <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>
+  {trip.start_date} → {trip.end_date} · {fmt(trip.budget,trip.currency)}
+  {rate&&trip.budget>0&&<span style={{marginLeft:8,fontSize:11,color:'var(--text-light)',background:'var(--bg-cream-dark)',padding:'2px 8px',borderRadius:20}}>≈ {fmt(trip.budget*rate.rate,trip.currency)} {trip.currency}</span>}
+</div>
               </div>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
                 <button onClick={()=>setShowEdit(true)} style={{padding:'9px 16px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'flex',alignItems:'center',gap:6,transition:'all 0.15s'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>✏️ Editar</button>

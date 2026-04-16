@@ -147,3 +147,4 @@ body {
   .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
   .responsive-padding { padding: 16px 14px 100px !important; }
 }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(74,124,89,0.3)} 50%{box-shadow:0 0 0 6px rgba(74,124,89,0.1)} }
