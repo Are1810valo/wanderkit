@@ -360,7 +360,7 @@ if(found?.destination){
   }
 
   return (
-    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg)'}}>
+    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg)',position:'relative'}}>
       <ToastContainer /> <CmdK trips={allTrips} />
       {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:499,backdropFilter:'blur(4px)'}} />}
 
@@ -407,7 +407,7 @@ if(found?.destination){
         </div>
       </div>
 
-      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
         <div className="mobile-header no-print" style={{display:'none',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',background:'var(--bg-sidebar)',borderBottom:'1px solid rgba(255,255,255,0.05)',flexShrink:0}}>
           <button onClick={()=>setSidebarOpen(true)} style={{background:'none',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',gap:4,padding:4}}>
             {[1,2,3].map(i=><div key={i} style={{width:20,height:2,background:'rgba(255,255,255,0.6)',borderRadius:2}} />)}
@@ -475,7 +475,7 @@ if(found?.destination){
 
           </div>
 
-        <div style={{flex:1,overflowY:'auto',background:'var(--bg)'}}>
+        <div style={{flex:1,overflowY:'auto',background:'var(--bg)',WebkitOverflowScrolling:'touch'} as any}>
           <TripProvider tripId={tripId||''} userRole={userRole}>
             <TabsWithCounts activeTab={activeTab} onTab={handleTab} tabsRef={tabsRef} />
             {children}

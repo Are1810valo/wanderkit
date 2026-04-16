@@ -134,13 +134,6 @@ body {
 @media (max-width: 480px) {
   .responsive-grid-2 { grid-template-columns: 1fr !important; }
   .responsive-text-sm { font-size: 28px !important; }
-  .tab-content-responsive { padding: 12px 10px 48px !important; }
-  .responsive-padding { padding: 16px 12px 40px !important; }
-}
-
-@media (max-width: 480px) {
-  .responsive-grid-2 { grid-template-columns: 1fr !important; }
-  .responsive-text-sm { font-size: 28px !important; }
-  .tab-content-responsive { padding: 12px 10px 48px !important; }
+  .tab-content-responsive { padding: 12px 10px 100px !important; }
   .responsive-padding { padding: 16px 12px 40px !important; }
 }
