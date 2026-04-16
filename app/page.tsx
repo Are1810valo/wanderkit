@@ -57,7 +57,7 @@ function AnimatedNumber({ value, duration = 800 }: { value: number; duration?: n
 
 export default function Home() {
   const router = useRouter()
-  const { trips, loading, createTrip, deleteTrips } = useTrips()
+  const { trips, loading, createTrip, deleteTrips, updateTrip } = useTrips()
   const [showNewTrip, setShowNewTrip] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -65,6 +65,19 @@ export default function Home() {
   const [showProfile, setShowProfile] = useState(false)
   const { data: session } = useSession()
   const [pullY, setPullY] = useState(0)
+  useEffect(()=>{
+    if(typeof window==='undefined'||!('serviceWorker' in navigator)||!('PushManager' in window)) return
+    navigator.serviceWorker.register('/sw.js').then(async reg=>{
+      const permission = await Notification.requestPermission()
+      if(permission!=='granted') return
+      const existing = await reg.pushManager.getSubscription()
+      const sub = existing || await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      })
+      await fetch('/api/push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type:'subscribe', subscription:sub}) })
+    }).catch(()=>{})
+  },[])
   const startY = useRef(0)
   const pulling = useRef(false)
 
@@ -86,6 +99,19 @@ export default function Home() {
     return()=>{el.removeEventListener('touchstart',onStart);el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEnd)}
   },[pullY])
   
+useEffect(()=>{
+    if(!trips.length) return
+    const today = new Date().toISOString().split('T')[0]
+    trips.forEach(async t=>{
+      if(t.status==='planificado' && t.start_date && t.start_date<=today){
+        await updateTrip(t.id, { status:'en curso' })
+      }
+      if(t.status==='en curso' && t.end_date && t.end_date<today){
+        await updateTrip(t.id, { status:'finalizado' })
+      }
+    })
+  },[trips.length])
+
   useEffect(() => {
     const applyTheme = () => {
       const hour = new Date().getHours()
