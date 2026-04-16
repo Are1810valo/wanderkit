@@ -342,9 +342,10 @@ export default function TripLayout({ children, params }: { children: React.React
     <div style={{display:'flex',height:'100dvh',overflow:'hidden',background:'var(--bg)',position:'relative'}}>
       <ToastContainer /> <CmdK trips={allTrips} />
       {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:499,backdropFilter:'blur(4px)'}} />}
+<style>{`@media(max-width:768px){.sidebar-responsive{display:flex!important}}`}</style>
 
       {/* SIDEBAR */}
-      <div className={`sidebar-responsive${sidebarOpen?' open':''}`} style={{width:260,minWidth:260,display:'flex',flexDirection:'column',background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,0.05)',overflow:'hidden',position:'relative',zIndex:10,flexShrink:0}}>
+      <div className={`sidebar-responsive${sidebarOpen?' open':''}`} style={{width:260,minWidth:260,display:'flex',flexDirection:'column',background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,0.05)',overflow:'hidden',position:'relative',zIndex:500,flexShrink:0}}>
         <div style={{padding:'24px 20px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',cursor:'pointer'}} onClick={()=>router.push('/')}>
           <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:24,fontWeight:300,color:'#f0ece3',lineHeight:1}}>Wander<em style={{color:'#b87333',fontStyle:'italic'}}>Kit</em></div>
           <div style={{fontSize:9,fontWeight:600,letterSpacing:'0.2em',textTransform:'uppercase',color:'rgba(255,255,255,0.2)',marginTop:5}}>Gestor de Viajes</div>
@@ -397,7 +398,7 @@ export default function TripLayout({ children, params }: { children: React.React
             {[1,2,3].map(i=><div key={i} style={{width:20,height:2,background:'rgba(255,255,255,0.6)',borderRadius:2}} />)}
           </button>
           <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:20,fontWeight:300,color:'#f0ece3'}}>Wander<em style={{color:'#b87333'}}>Kit</em></div>
-          <button onClick={()=>setShowEdit(true)} style={{background:'rgba(255,255,255,0.06)',border:'none',borderRadius:8,padding:'6px 12px',color:'rgba(255,255,255,0.5)',fontSize:12,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>✏️</button>
+          <button onClick={()=>router.push('/')} style={{background:'rgba(255,255,255,0.06)',border:'none',borderRadius:8,padding:'6px 12px',color:'rgba(255,255,255,0.5)',fontSize:12,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>← Inicio</button>
         </div>
 
         {/* Desktop trip header */}

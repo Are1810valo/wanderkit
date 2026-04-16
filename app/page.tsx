@@ -201,7 +201,7 @@ useEffect(()=>{
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 40 }}>
               {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 16 }} />)}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 22, marginTop: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 14, marginTop: 16 }}>
               {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 200, borderRadius: 20 }} />)}
             </div>
           </div>
@@ -246,7 +246,7 @@ useEffect(()=>{
                   { num: finished, label: 'Finalizados', icon: '✅' },
                   { num: ongoing, label: 'En curso', icon: '✈️' }
                 ].map((s, i) => (
-                  <div key={i} style={{ background: 'var(--bg-card)', padding: '20px 24px' }}>
+                  <div key={i} style={{ background: 'var(--bg-card)', padding: '14px 16px' }}>
                     <div style={{ fontSize: 20, marginBottom: 8 }}>{s.icon}</div>
                     <div style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 40, fontWeight: 300, color: 'var(--navy)', lineHeight: 1 }}><AnimatedNumber value={s.num} /></div>
                     <div style={{ fontSize: 10, color: 'var(--text-light)', marginTop: 4, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.label}</div>
@@ -278,7 +278,7 @@ useEffect(()=>{
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 14 }}>
                   {trips.filter(t=>filterStatus==='todos'||t.status===filterStatus).map((t, i) => {
                     const sc = statusConfig[t.status] || statusConfig.planificado
                     const color = tripColors[t.color_idx ?? i % tripColors.length]
@@ -290,7 +290,7 @@ useEffect(()=>{
                         <div onClick={(e) => toggleSelect(e, t.id)} style={{ position: 'absolute', top: 12, left: 12, width: 22, height: 22, borderRadius: 6, border: `2px solid ${isSelected ? '#b87333' : 'rgba(255,255,255,0.8)'}`, background: isSelected ? '#b87333' : 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', transition: 'all 0.15s' }}>
                           {isSelected && <span style={{ color: 'white', fontSize: 13, fontWeight: 700, lineHeight: 1 }}>✓</span>}
                         </div>
-                        <div style={{ height: 140, position: 'relative', overflow: 'hidden', borderBottom: `3px solid ${color}` }}>
+                        <div style={{ height: 110, position: 'relative', overflow: 'hidden', borderBottom: `3px solid ${color}` }}>
   {tripPhotos[t.id]
     ? <img src={tripPhotos[t.id]} alt={t.destination} style={{width:'100%',height:'100%',objectFit:'cover',transition:'transform 0.4s'}} onMouseEnter={e=>(e.currentTarget.style.transform='scale(1.05)')} onMouseLeave={e=>(e.currentTarget.style.transform='scale(1)')} />
     : <div style={{width:'100%',height:'100%',background:`linear-gradient(135deg,${color}20,${color}40)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,opacity:0.4}}>🌍</div>
