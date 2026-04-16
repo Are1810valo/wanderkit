@@ -143,3 +143,7 @@ body {
   .tab-content-responsive { padding: 12px 10px 100px !important; }
   .responsive-padding { padding: 16px 12px 40px !important; }
 }
+@media (max-width: 600px) {
+  .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+  .responsive-padding { padding: 16px 14px 100px !important; }
+}

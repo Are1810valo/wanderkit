@@ -239,7 +239,7 @@ useEffect(()=>{
 
             {/* Stats — solo si hay viajes */}
             {trips.length > 0 && (
-              <div className="fade-up-2 responsive-grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, marginBottom: 24, background: 'var(--border)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              <div className="fade-up-2 stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, marginBottom: 24, background: 'var(--border)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
                 {[
                   { num: trips.length, label: 'Total viajes', icon: '🌍' },
                   { num: countries, label: 'Países', icon: '📍' },
