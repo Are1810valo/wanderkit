@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 import { useTrips } from '@/lib/hooks/useTrips'
@@ -64,7 +64,28 @@ export default function Home() {
   const [filterStatus, setFilterStatus] = useState('todos')
   const [showProfile, setShowProfile] = useState(false)
   const { data: session } = useSession()
+  const [pullY, setPullY] = useState(0)
+  const startY = useRef(0)
+  const pulling = useRef(false)
 
+  useEffect(()=>{
+    const el = document.querySelector('.main-scroll') as HTMLElement
+    if(!el) return
+    const onStart=(e:TouchEvent)=>{ startY.current=e.touches[0].clientY }
+    const onMove=(e:TouchEvent)=>{
+      const dy=e.touches[0].clientY-startY.current
+      if(dy>0&&el.scrollTop===0){setPullY(Math.min(dy,80));e.preventDefault()}
+    }
+    const onEnd=async()=>{
+      if(pullY>60&&!pulling.current){pulling.current=true;window.location.reload()}
+      setPullY(0)
+    }
+    el.addEventListener('touchstart',onStart,{passive:true})
+    el.addEventListener('touchmove',onMove,{passive:false})
+    el.addEventListener('touchend',onEnd)
+    return()=>{el.removeEventListener('touchstart',onStart);el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEnd)}
+  },[pullY])
+  
   useEffect(() => {
     const applyTheme = () => {
       const hour = new Date().getHours()
@@ -124,7 +145,13 @@ useEffect(()=>{
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
       <ToastContainer />
-
+{pullY>0&&(
+  <div style={{position:'fixed',top:0,left:0,right:0,display:'flex',justifyContent:'center',zIndex:100,pointerEvents:'none',transform:`translateY(${pullY-40}px)`,transition:'transform 0.1s'}}>
+    <div style={{background:'var(--bg-card)',borderRadius:20,padding:'6px 14px',fontSize:12,color:'var(--text-mid)',boxShadow:'var(--shadow-card)',display:'flex',alignItems:'center',gap:6}}>
+      {pullY>60?'↑ Suelta para actualizar':'↓ Desliza para actualizar'}
+    </div>
+  </div>
+)}
       {/* Overlay mobile */}
       {sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 499, backdropFilter: 'blur(4px)' }} />
@@ -186,7 +213,7 @@ useEffect(()=>{
       </div>
 
       {/* MAIN */}
-      <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      <div className="main-scroll" style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
         {/* Mobile header */}
         <div className="mobile-header no-print" style={{ display: 'none', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'var(--bg-sidebar)', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'sticky', top: 0, zIndex: 200 }}>
           <button onClick={() => setSidebarOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4, padding: 4 }}>
