@@ -110,8 +110,11 @@ textarea.form-input { resize: vertical; line-height: 1.6; }
     width: 280px !important;
     min-width: unset !important;
     z-index: 500;
-    overflow-y: auto !important;
+    overflow-y: auto !important; 
   }
+  .desktop-trip-header { display: none !important; }
+.mobile-trip-bar { display: block !important; }
+.mobile-bottom-nav { display: flex !important; flex-direction: column; }
   .sidebar-responsive.open { transform: translateX(0); }
   .desktop-tabs { display: none !important; }
   .mobile-bottom-nav { display: flex !important; flex-direction: column; }

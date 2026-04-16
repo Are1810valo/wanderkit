@@ -88,14 +88,12 @@ function EditTripModal({ trip, onClose, onSave }: any) {
   const [error,setError] = useState('')
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
   const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
-
   const handleSave = async () => {
     if(!f.name.trim()){setError('El nombre es requerido');return}
     setSaving(true); setError('')
     try { await onSave({...f,budget:parseFloat(String(f.budget))||0}) }
     catch(e) { setError('Error al guardar. Intenta nuevamente.'); setSaving(false) }
   }
-
   return (
     <Modal title="Editar viaje" onClose={onClose}>
       {error&&<div style={{padding:'10px 14px',background:'rgba(196,92,92,0.08)',border:'1px solid rgba(196,92,92,0.2)',borderRadius:10,fontSize:13,color:'#c45c5c',marginBottom:16}}>{error}</div>}
@@ -144,7 +142,6 @@ function InviteModal({ tripId, onClose }: any) {
   const [saving, setSaving] = useState(false)
   const [link, setLink] = useState('')
   const [error, setError] = useState('')
-
   const handleInvite = async () => {
     if (!email.trim()) { setError('El email es requerido'); return }
     setSaving(true); setError('')
@@ -155,7 +152,6 @@ function InviteModal({ tripId, onClose }: any) {
       setError(e.response?.data?.error || 'Error al generar invitación')
     } finally { setSaving(false) }
   }
-
   return (
     <Modal title="Invitar al viaje" onClose={onClose}>
       {!link ? (
@@ -200,15 +196,10 @@ function InviteModal({ tripId, onClose }: any) {
           <button onClick={()=>{navigator.clipboard.writeText(link);toast('Link copiado','success')}} style={{width:'100%',padding:'12px',background:'#b87333',color:'white',border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginBottom:10}}>
             📋 Copiar link
           </button>
-          <button onClick={()=>{
-            const msg = encodeURIComponent(`Te invito a unirte a mi viaje en WanderKit 🌍\n${link}`)
-            window.open(`https://wa.me/?text=${msg}`,'_blank')
-          }} style={{width:'100%',padding:'12px',background:'#25D366',color:'white',border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          <button onClick={()=>{ const msg=encodeURIComponent(`Te invito a unirte a mi viaje en WanderKit 🌍\n${link}`); window.open(`https://wa.me/?text=${msg}`,'_blank') }} style={{width:'100%',padding:'12px',background:'#25D366',color:'white',border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
             💬 Compartir por WhatsApp
           </button>
-          <button onClick={onClose}style={{width:'100%',padding:'12px',background:'transparent',border:'1px solid var(--border)',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>
-            Cerrar
-          </button>
+          <button onClick={onClose} style={{width:'100%',padding:'12px',background:'transparent',border:'1px solid var(--border)',borderRadius:12,fontSize:13,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>Cerrar</button>
         </>
       )}
     </Modal>
@@ -220,7 +211,6 @@ function CmdK({ trips }: { trips: any[] }) {
   const [q, setQ] = useState('')
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
-
   useEffect(()=>{
     const handler=(e:KeyboardEvent)=>{
       if((e.metaKey||e.ctrlKey)&&e.key==='k'){ e.preventDefault(); setOpen(o=>!o); setQ('') }
@@ -229,14 +219,11 @@ function CmdK({ trips }: { trips: any[] }) {
     window.addEventListener('keydown',handler)
     return()=>window.removeEventListener('keydown',handler)
   },[])
-
   useEffect(()=>{ if(open) setTimeout(()=>inputRef.current?.focus(),50) },[open])
-
   const results = q.trim().length<2 ? trips.slice(0,5) : trips.filter(t=>
     t.name?.toLowerCase().includes(q.toLowerCase()) ||
     t.destination?.toLowerCase().includes(q.toLowerCase())
   )
-
   if(!open) return null
   return createPortal(
     <div style={{position:'fixed',inset:0,background:'rgba(8,14,28,0.75)',zIndex:99999,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:120}} onClick={()=>setOpen(false)}>
@@ -262,7 +249,7 @@ function CmdK({ trips }: { trips: any[] }) {
             </div>
           ))}
         </div>
-        {q.length<2&&<div style={{padding:'10px 18px',fontSize:11,color:'var(--text-light)',borderTop:'1px solid var(--border)'}}>Escribe para buscar · <kbd style={{padding:'1px 5px',borderRadius:4,border:'1px solid var(--border)',fontSize:10}}>↑↓</kbd> navegar</div>}
+        {q.length<2&&<div style={{padding:'10px 18px',fontSize:11,color:'var(--text-light)',borderTop:'1px solid var(--border)'}}>Escribe para buscar</div>}
       </div>
     </div>,
     document.body
@@ -278,11 +265,11 @@ export default function TripLayout({ children, params }: { children: React.React
   const [tripId, setTripId]           = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showEdit, setShowEdit]       = useState(false)
-  const [showInvite, setShowInvite] = useState(false)
+  const [showInvite, setShowInvite]   = useState(false)
   const [loadingTrip, setLoadingTrip] = useState(true)
-  const [userRole, setUserRole] = useState<'owner'|'escritor'|'lector'>('owner')
-const [weather, setWeather] = useState<any>(null)
-const [forecast, setForecast] = useState<any[]>([])
+  const [userRole, setUserRole]       = useState<'owner'|'escritor'|'lector'>('owner')
+  const [weather, setWeather]         = useState<any>(null)
+  const [forecast, setForecast]       = useState<any[]>([])
 
   useEffect(()=>{
     const apply=()=>document.documentElement.setAttribute('data-theme',new Date().getHours()>=7&&new Date().getHours()<19?'light':'dark')
@@ -298,23 +285,22 @@ const [forecast, setForecast] = useState<any[]>([])
     try {
       const res = await axios.get('/api/trips')
       try {
-  const members = await axios.get(`/api/trips/${id}/members`)
-  const session = await fetch('/api/auth/session').then(r=>r.json())
-  const me = members.data.find((m:any)=>m.user_id===session?.user?.email)
-  if(me) { setUserRole(me.role) }
-  // Owner siempre ve todo — no necesita filtro
-} catch(e){}
+        const members = await axios.get(`/api/trips/${id}/members`)
+        const session = await fetch('/api/auth/session').then(r=>r.json())
+        const me = members.data.find((m:any)=>m.user_id===session?.user?.email)
+        if(me) setUserRole(me.role)
+      } catch(e){}
       setAllTrips(res.data)
       setTrip(res.data.find((t:any)=>t.id===id)||null)
       const found = res.data.find((t:any)=>t.id===id)
-if(found?.destination){
-  const city = encodeURIComponent(found.destination.split(',')[0].trim())
-  const key = process.env.NEXT_PUBLIC_OPENWEATHER_KEY
-  fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${key}&units=metric&lang=es`)
-    .then(r=>r.json()).then(d=>{ if(d.main) setWeather(d) }).catch(()=>{})
-  fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${key}&units=metric&lang=es&cnt=4`)
-    .then(r=>r.json()).then(d=>{ if(d.list) setForecast(d.list) }).catch(()=>{})
-}
+      if(found?.destination){
+        const city = encodeURIComponent(found.destination.split(',')[0].trim())
+        const key = process.env.NEXT_PUBLIC_OPENWEATHER_KEY
+        fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${key}&units=metric&lang=es`)
+          .then(r=>r.json()).then(d=>{ if(d.main) setWeather(d) }).catch(()=>{})
+        fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${key}&units=metric&lang=es&cnt=4`)
+          .then(r=>r.json()).then(d=>{ if(d.list) setForecast(d.list) }).catch(()=>{})
+      }
     } catch(e){ console.error(e) }
     finally{ setLoadingTrip(false) }
   },[])
@@ -333,37 +319,31 @@ if(found?.destination){
     const updated={...trip,name:data.name,destination:data.destination,start_date:data.startDate,end_date:data.endDate,budget:data.budget,currency:data.currency,status:data.status,color_idx:data.colorIdx}
     try {
       await axios.put(`/api/trips/${tripId}`,updated)
-      setTrip(updated)
-      setAllTrips(prev=>prev.map(t=>t.id===tripId?updated:t))
-      setShowEdit(false)
-      toast('Viaje actualizado correctamente','success')
+      setTrip(updated); setAllTrips(prev=>prev.map(t=>t.id===tripId?updated:t))
+      setShowEdit(false); toast('Viaje actualizado correctamente','success')
     } catch(e){ throw e }
   }
 
   const handleDelete = async()=>{
     if(!confirm('¿Eliminar este viaje y todo su contenido? Esta acción no se puede deshacer.')) return
-    try {
-      await axios.delete(`/api/trips/${tripId}`)
-      toast('Viaje eliminado','info')
-      router.push('/')
-    } catch(e){ toast('Error al eliminar el viaje','error') }
+    try { await axios.delete(`/api/trips/${tripId}`); toast('Viaje eliminado','info'); router.push('/') }
+    catch(e){ toast('Error al eliminar el viaje','error') }
   }
 
   const handleUpdateStatus = async(status:string)=>{
-    const prev=trip
-    const updated={...trip,status}
-    setTrip(updated)
-    try {
-      await axios.put(`/api/trips/${tripId}`,updated)
-      toast('Estado actualizado','success')
-    } catch(e){ setTrip(prev); toast('Error al actualizar el estado','error') }
+    const prev=trip; const updated={...trip,status}; setTrip(updated)
+    try { await axios.put(`/api/trips/${tripId}`,updated); toast('Estado actualizado','success') }
+    catch(e){ setTrip(prev); toast('Error al actualizar el estado','error') }
   }
 
+  const wIcon = (id:number) => id>=800&&id<801?'☀️':id>=300&&id<600?'🌧':'⛅'
+
   return (
-    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg)',position:'relative'}}>
+    <div style={{display:'flex',height:'100dvh',overflow:'hidden',background:'var(--bg)',position:'relative'}}>
       <ToastContainer /> <CmdK trips={allTrips} />
       {sidebarOpen&&<div onClick={()=>setSidebarOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:499,backdropFilter:'blur(4px)'}} />}
 
+      {/* SIDEBAR */}
       <div className={`sidebar-responsive${sidebarOpen?' open':''}`} style={{width:260,minWidth:260,display:'flex',flexDirection:'column',background:'var(--bg-sidebar)',borderRight:'1px solid rgba(255,255,255,0.05)',overflow:'hidden',position:'relative',zIndex:10,flexShrink:0}}>
         <div style={{padding:'24px 20px 20px',borderBottom:'1px solid rgba(255,255,255,0.05)',cursor:'pointer'}} onClick={()=>router.push('/')}>
           <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:24,fontWeight:300,color:'#f0ece3',lineHeight:1}}>Wander<em style={{color:'#b87333',fontStyle:'italic'}}>Kit</em></div>
@@ -383,7 +363,7 @@ if(found?.destination){
               {[1,2,3].map(i=><div key={i} className="skeleton" style={{height:44,borderRadius:10}} />)}
             </div>
           ) : allTrips.map((t,i)=>(
-            <div key={t.id} onClick={()=>router.push(`/trips/${t.id}/overview`)}
+            <div key={t.id} onClick={()=>{router.push(`/trips/${t.id}/overview`);setSidebarOpen(false)}}
               style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',margin:'2px 8px',borderRadius:10,cursor:'pointer',transition:'all 0.15s',background:t.id===tripId?'rgba(184,115,51,0.12)':'rgba(255,255,255,0.02)',border:t.id===tripId?'1px solid rgba(184,115,51,0.28)':'1px solid transparent'}}
               onMouseEnter={e=>{if(t.id!==tripId)e.currentTarget.style.background='rgba(255,255,255,0.06)'}}
               onMouseLeave={e=>{if(t.id!==tripId)e.currentTarget.style.background='rgba(255,255,255,0.02)'}}>
@@ -397,37 +377,38 @@ if(found?.destination){
           ))}
         </div>
         <div style={{padding:'12px 10px',borderTop:'1px solid rgba(255,255,255,0.05)'}}>
-<button onClick={()=>signOut({callbackUrl:'/login'})} style={{width:'100%',padding:'10px 12px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',marginBottom:8,display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}}
-  onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.7)'}}
-  onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.4)'}}>
-  <span style={{fontSize:14}}>↪</span> Cerrar sesión
-</button>          <button onClick={()=>router.push('/?new=1')} style={{width:'100%',padding:'10px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,color:'#b87333',background:'rgba(184,115,51,0.1)',border:'1.5px solid rgba(184,115,51,0.28)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+          <button onClick={()=>signOut({callbackUrl:'/login'})} style={{width:'100%',padding:'10px 12px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:500,color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.06)',marginBottom:8,display:'flex',alignItems:'center',gap:8,transition:'all 0.15s'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.7)'}}
+            onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.4)'}}>
+            <span style={{fontSize:14}}>↪</span> Cerrar sesión
+          </button>
+          <button onClick={()=>router.push('/?new=1')} style={{width:'100%',padding:'10px',borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,color:'#b87333',background:'rgba(184,115,51,0.1)',border:'1.5px solid rgba(184,115,51,0.28)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
             ＋ Nuevo viaje
           </button>
         </div>
       </div>
 
+      {/* MAIN */}
       <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
-        <div className="mobile-header no-print" style={{display:'none',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',background:'var(--bg-sidebar)',borderBottom:'1px solid rgba(255,255,255,0.05)',flexShrink:0}}>
+
+        {/* Mobile header */}
+        <div className="mobile-header no-print" style={{display:'none',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:'var(--bg-sidebar)',borderBottom:'1px solid rgba(255,255,255,0.05)',flexShrink:0}}>
           <button onClick={()=>setSidebarOpen(true)} style={{background:'none',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',gap:4,padding:4}}>
             {[1,2,3].map(i=><div key={i} style={{width:20,height:2,background:'rgba(255,255,255,0.6)',borderRadius:2}} />)}
           </button>
           <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:20,fontWeight:300,color:'#f0ece3'}}>Wander<em style={{color:'#b87333'}}>Kit</em></div>
-          <button onClick={()=>router.push('/')} style={{background:'rgba(255,255,255,0.06)',border:'none',borderRadius:8,padding:'6px 12px',color:'rgba(255,255,255,0.5)',fontSize:12,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>← Inicio</button>
+          <button onClick={()=>setShowEdit(true)} style={{background:'rgba(255,255,255,0.06)',border:'none',borderRadius:8,padding:'6px 12px',color:'rgba(255,255,255,0.5)',fontSize:12,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>✏️</button>
         </div>
 
-        <div className="no-print" style={{background:'var(--bg-card)',borderBottom:'1px solid var(--border)',flexShrink:0,zIndex:100,padding:'20px 44px 0'}}>
+        {/* Desktop trip header */}
+        <div className="no-print desktop-trip-header" style={{background:'var(--bg-card)',borderBottom:'1px solid var(--border)',flexShrink:0,zIndex:100,padding:'20px 44px 0'}}>
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14,fontSize:12,color:'var(--text-light)'}}>
             <span onClick={()=>router.push('/')} style={{cursor:'pointer',color:'#b87333',fontWeight:500,transition:'opacity 0.15s'}} onMouseEnter={e=>e.currentTarget.style.opacity='0.7'} onMouseLeave={e=>e.currentTarget.style.opacity='1'}>Inicio</span>
             <span style={{opacity:0.4}}>›</span>
-            {loadingTrip
-              ? <div className="skeleton" style={{width:80,height:13,borderRadius:4,display:'inline-block'}} />
-              : <span style={{color:'var(--text-mid)',fontWeight:500}}>{trip?.name}</span>
-            }
+            {loadingTrip ? <div className="skeleton" style={{width:80,height:13,borderRadius:4,display:'inline-block'}} /> : <span style={{color:'var(--text-mid)',fontWeight:500}}>{trip?.name}</span>}
             <span style={{opacity:0.4}}>›</span>
             <span>{TABS.find(t=>t.id===activeTab)?.label||'Resumen'}</span>
           </div>
-
           {loadingTrip ? (
             <div style={{marginBottom:20}}>
               <div className="skeleton" style={{width:160,height:12,borderRadius:4,marginBottom:12}} />
@@ -441,29 +422,23 @@ if(found?.destination){
                   {trip.status==='en curso'?'🟢 En curso':trip.status==='finalizado'?'🏁 Finalizado':'📋 Planificado'}
                 </div>
                 <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:34,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip.name}</div>
-                <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.destination}{weather&&<span style={{marginLeft:8}}>· {weather.weather[0].id>=800&&weather.weather[0].id<801?'☀️':weather.weather[0].id>=300&&weather.weather[0].id<600?'🌧':'⛅'} {Math.round(weather.main.temp)}°C <span style={{textTransform:'capitalize',color:'var(--text-light)'}}>{weather.weather[0].description}</span></span>}</div>
+                <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>
+                  {trip.destination}
+                  {weather&&<span style={{marginLeft:8}}>· {wIcon(weather.weather[0].id)} <strong>{Math.round(weather.main.temp)}°C</strong> <span style={{textTransform:'capitalize',color:'var(--text-light)'}}>{weather.weather[0].description}</span></span>}
+                </div>
                 {forecast.length>1&&<div style={{fontSize:11,color:'var(--text-light)',marginTop:4,display:'flex',gap:14,flexWrap:'wrap'}}>
                   {forecast.slice(1).map((f:any,i:number)=>{
                     const dia = new Date(f.dt*1000).toLocaleDateString('es-CL',{weekday:'long'})
-                    const icon = f.weather[0].id>=800&&f.weather[0].id<801?'☀️':f.weather[0].id>=300&&f.weather[0].id<600?'🌧':'⛅'
-                    return <span key={i} style={{display:'flex',alignItems:'center',gap:3}}><span style={{textTransform:'capitalize'}}>{dia}</span> <strong style={{color:'var(--text-mid)'}}>{Math.round(f.main.temp)}°</strong> {icon}</span>
+                    return <span key={i} style={{display:'flex',alignItems:'center',gap:3}}><span style={{textTransform:'capitalize'}}>{dia}</span> <strong style={{color:'var(--text-mid)'}}>{Math.round(f.main.temp)}°</strong> {wIcon(f.weather[0].id)}</span>
                   })}
                 </div>}
                 <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>{trip.start_date} → {trip.end_date} · {fmt(trip.budget,trip.currency)}</div>
               </div>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-                <button onClick={()=>setShowEdit(true)} style={{padding:'9px 16px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'flex',alignItems:'center',gap:6,transition:'all 0.15s'}}
-                  onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  ✏️ Editar
-                </button>
+                <button onClick={()=>setShowEdit(true)} style={{padding:'9px 16px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'flex',alignItems:'center',gap:6,transition:'all 0.15s'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>✏️ Editar</button>
                 <button onClick={()=>window.print()} style={{padding:'9px 12px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)'}}>🖨️</button>
                 <button onClick={()=>setShowInvite(true)} style={{padding:'9px 16px',background:'transparent',border:'1px solid var(--border)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'var(--text-mid)',display:'flex',alignItems:'center',gap:6,transition:'all 0.15s'}} onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>👥 Invitar</button>
-                <button onClick={handleDelete} style={{padding:'9px 12px',background:'transparent',border:'1px solid rgba(196,92,92,0.35)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'#c45c5c',transition:'all 0.15s'}}
-                  onMouseEnter={e=>e.currentTarget.style.background='rgba(196,92,92,0.08)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  🗑
-                </button>
+                <button onClick={handleDelete} style={{padding:'9px 12px',background:'transparent',border:'1px solid rgba(196,92,92,0.35)',borderRadius:10,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',color:'#c45c5c',transition:'all 0.15s'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(196,92,92,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>🗑</button>
                 <select value={trip.status} onChange={e=>handleUpdateStatus(e.target.value)} style={{padding:'9px 12px',border:'1px solid var(--border)',borderRadius:10,background:'var(--bg-input)',color:'var(--text-mid)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans,sans-serif',outline:'none'}}>
                   <option value="planificado">📋 Planificado</option>
                   <option value="en curso">🟢 En Curso</option>
@@ -472,10 +447,25 @@ if(found?.destination){
               </div>
             </div>
           )}
+        </div>
 
+        {/* Mobile trip info bar */}
+        {trip&&<div className="mobile-trip-bar" style={{display:'none',padding:'10px 16px',background:'var(--bg-card)',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+          <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:20,fontWeight:300,color:'var(--navy)',lineHeight:1}}>{trip.name}</div>
+          <div style={{fontSize:11,color:'var(--text-light)',marginTop:3,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+            <span>{trip.destination}</span>
+            {weather&&<span>· {wIcon(weather.weather[0].id)} {Math.round(weather.main.temp)}°C</span>}
+            <span>· {trip.start_date} → {trip.end_date}</span>
           </div>
+          {forecast.length>1&&<div style={{fontSize:10,color:'var(--text-light)',marginTop:4,display:'flex',gap:10,flexWrap:'wrap'}}>
+            {forecast.slice(1).map((f:any,i:number)=>{
+              const dia = new Date(f.dt*1000).toLocaleDateString('es-CL',{weekday:'short'})
+              return <span key={i} style={{textTransform:'capitalize'}}>{dia} {Math.round(f.main.temp)}° {wIcon(f.weather[0].id)}</span>
+            })}
+          </div>}
+        </div>}
 
-        <div style={{flex:1,overflowY:'auto',background:'var(--bg)',WebkitOverflowScrolling:'touch'} as any}>
+        <div style={{flex:1,overflowY:'auto',background:'var(--bg)'} as any}>
           <TripProvider tripId={tripId||''} userRole={userRole}>
             <TabsWithCounts activeTab={activeTab} onTab={handleTab} tabsRef={tabsRef} />
             {children}
@@ -484,12 +474,14 @@ if(found?.destination){
       </div>
 
       {showEdit&&trip&&<EditTripModal trip={trip} onClose={()=>setShowEdit(false)} onSave={handleSaveTrip} />}
-        {showInvite&&trip&&<InviteModal tripId={tripId} onClose={()=>setShowInvite(false)} />}
+      {showInvite&&trip&&<InviteModal tripId={tripId} onClose={()=>setShowInvite(false)} />}
     </div>
   )
 }
+
 function TabsWithCounts({ activeTab, onTab, tabsRef }: any) {
   const { items } = useTripContext()
+  const [showMore, setShowMore] = useState(false)
   const counts: Record<string,number> = {
     flights: items?.flights?.length||0,
     itinerary: items?.itinerary?.length||0,
@@ -500,17 +492,59 @@ function TabsWithCounts({ activeTab, onTab, tabsRef }: any) {
     proposals: items?.proposals?.length||0,
     journal: items?.journal?.length||0,
   }
+
+  const BOTTOM_TABS = [
+    {id:'overview', icon:'🏠', label:'Resumen'},
+    {id:'expenses', icon:'💰', label:'Gastos'},
+    {id:'itinerary', icon:'🗓', label:'Plan'},
+    {id:'places', icon:'📍', label:'Lugares'},
+  ]
+  const MORE_TABS = TABS.filter(t=>!['overview','expenses','itinerary','places'].includes(t.id))
+
   return (
-    <div style={{position:'relative'}}>
-      <div ref={tabsRef} style={{display:'flex',overflowX:'auto',scrollbarWidth:'none'}}>
-        {TABS.map(t=>(
-          <button key={t.id} data-tab={t.id} onClick={()=>onTab(t.id)} style={{padding:'11px 16px',fontSize:12,fontWeight:activeTab===t.id?600:400,background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap',flexShrink:0,borderBottom:activeTab===t.id?'2px solid #b87333':'2px solid transparent',color:activeTab===t.id?'var(--navy)':'var(--text-light)',transition:'all 0.2s',marginBottom:-1,display:'flex',alignItems:'center',gap:5}}>
-            {t.label}
-            {counts[t.id]>0&&<span style={{fontSize:10,padding:'1px 6px',borderRadius:10,background:activeTab===t.id?'rgba(184,115,51,0.15)':'var(--bg-cream-dark)',color:activeTab===t.id?'#b87333':'var(--text-light)',fontWeight:600}}>{counts[t.id]}</span>}
-          </button>
-        ))}
+    <>
+      {/* Desktop tabs */}
+      <div className="desktop-tabs" style={{position:'relative',background:'var(--bg-card)',borderBottom:'1px solid var(--border)'}}>
+        <div ref={tabsRef} style={{display:'flex',overflowX:'auto',scrollbarWidth:'none' as any}}>
+          {TABS.map(t=>(
+            <button key={t.id} data-tab={t.id} onClick={()=>onTab(t.id)} style={{padding:'11px 16px',fontSize:12,fontWeight:activeTab===t.id?600:400,background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap',flexShrink:0,borderBottom:activeTab===t.id?'2px solid #b87333':'2px solid transparent',color:activeTab===t.id?'var(--navy)':'var(--text-light)',transition:'all 0.2s',marginBottom:-1,display:'flex',alignItems:'center',gap:5}}>
+              {t.label}
+              {counts[t.id]>0&&<span style={{fontSize:10,padding:'1px 6px',borderRadius:10,background:activeTab===t.id?'rgba(184,115,51,0.15)':'var(--bg-cream-dark)',color:activeTab===t.id?'#b87333':'var(--text-light)',fontWeight:600}}>{counts[t.id]}</span>}
+            </button>
+          ))}
+        </div>
+        <div style={{position:'absolute',right:0,top:0,bottom:0,width:40,background:'linear-gradient(to left,var(--bg-card),transparent)',pointerEvents:'none'}} />
       </div>
-      <div style={{position:'absolute',right:0,top:0,bottom:0,width:40,background:'linear-gradient(to left,var(--bg-card),transparent)',pointerEvents:'none'}} />
-    </div>
+
+      {/* Mobile bottom nav */}
+      <div className="mobile-bottom-nav" style={{display:'none',position:'fixed',bottom:0,left:0,right:0,background:'var(--bg-sidebar)',borderTop:'1px solid rgba(255,255,255,0.1)',zIndex:300,paddingBottom:'env(safe-area-inset-bottom,0px)'}}>
+        {showMore&&(
+          <>
+            <div onClick={()=>setShowMore(false)} style={{position:'fixed',inset:0,zIndex:298}} />
+            <div style={{position:'absolute',bottom:'100%',left:0,right:0,background:'var(--bg-sidebar)',borderTop:'1px solid rgba(255,255,255,0.08)',padding:'12px',zIndex:299,display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+              {MORE_TABS.map(t=>(
+                <button key={t.id} onClick={()=>{onTab(t.id);setShowMore(false)}} style={{padding:'10px 8px',background:activeTab===t.id?'rgba(184,115,51,0.15)':'rgba(255,255,255,0.04)',border:`1px solid ${activeTab===t.id?'rgba(184,115,51,0.3)':'rgba(255,255,255,0.06)'}`,borderRadius:10,cursor:'pointer',fontFamily:'DM Sans,sans-serif',fontSize:11,color:activeTab===t.id?'#b87333':'rgba(255,255,255,0.5)',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                  <span>{t.label}</span>
+                  {counts[t.id]>0&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:8,background:'rgba(184,115,51,0.2)',color:'#b87333'}}>{counts[t.id]}</span>}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        <div style={{display:'flex',justifyContent:'space-around',alignItems:'center',padding:'8px 0'}}>
+          {BOTTOM_TABS.map(t=>(
+            <button key={t.id} onClick={()=>{onTab(t.id);setShowMore(false)}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 16px',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',minWidth:60}}>
+              <span style={{fontSize:22}}>{t.icon}</span>
+              <span style={{fontSize:10,color:activeTab===t.id?'#b87333':'rgba(255,255,255,0.4)',fontWeight:activeTab===t.id?600:400,transition:'color 0.15s'}}>{t.label}</span>
+              {activeTab===t.id&&<div style={{width:4,height:4,borderRadius:'50%',background:'#b87333',marginTop:1}} />}
+            </button>
+          ))}
+          <button onClick={()=>setShowMore(!showMore)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'4px 16px',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans,sans-serif',minWidth:60}}>
+            <span style={{fontSize:22}}>☰</span>
+            <span style={{fontSize:10,color:showMore?'#b87333':'rgba(255,255,255,0.4)',fontWeight:showMore?600:400}}>Más</span>
+          </button>
+        </div>
+      </div>
+    </>
   )
 }
