@@ -20,20 +20,22 @@ function getRateLimit(ip: string): { ok: boolean; remaining: number } {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Rutas completamente públicas — sin auth
+  if (pathname.includes('/public') || pathname.startsWith('/api/public/')) {
+    return NextResponse.next()
+  }
+
   if (pathname.startsWith('/api/')) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('x-real-ip')
       || 'unknown'
-
     const { ok, remaining } = getRateLimit(ip)
-
     if (!ok) {
       return NextResponse.json(
         { error: 'Demasiadas solicitudes. Intenta en un momento.' },
         { status: 429, headers: { 'Retry-After': '60', 'X-RateLimit-Limit': String(RATE_LIMIT), 'X-RateLimit-Remaining': '0' } }
       )
     }
-
     const response = NextResponse.next()
     response.headers.set('X-RateLimit-Limit', String(RATE_LIMIT))
     response.headers.set('X-RateLimit-Remaining', String(remaining))
@@ -41,22 +43,20 @@ export function proxy(request: NextRequest) {
   }
 
   const sitePassword = process.env.SITE_PASSWORD
-const isPublic = pathname.includes('/public')
-const isAuth = pathname.startsWith('/api/auth') || pathname.startsWith('/login')
-if (!isAuth && !isPublic) {
-  const sessionToken = request.cookies.get('next-auth.session-token') || request.cookies.get('__Secure-next-auth.session-token')
-  if (!sessionToken) {
-    if (sitePassword) {
-      const cookie = request.cookies.get('wk_auth')
-      if (cookie?.value !== sitePassword) return NextResponse.redirect(new URL('/login', request.url))
+  const isAuth = pathname.startsWith('/api/auth') || pathname.startsWith('/login')
+  if (!isAuth) {
+    const sessionToken = request.cookies.get('next-auth.session-token') || request.cookies.get('__Secure-next-auth.session-token')
+    if (!sessionToken) {
+      if (sitePassword) {
+        const cookie = request.cookies.get('wk_auth')
+        if (cookie?.value !== sitePassword) return NextResponse.redirect(new URL('/login', request.url))
+      }
     }
   }
-}
-  
 
   return NextResponse.next()
 }
 
 export const config = {
-matcher: ['/((?!_next/static|_next/image|favicon.ico|trips/.*?/public).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
