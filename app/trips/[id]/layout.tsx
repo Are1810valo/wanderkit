@@ -301,10 +301,11 @@ export default function TripLayout({ children, params }: { children: React.React
           .then(r=>r.json()).then(d=>{ if(d.main) setWeather(d) }).catch(()=>{})
         fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${key}&units=metric&lang=es&cnt=4`)
           .then(r=>r.json()).then(d=>{ if(d.list) setForecast(d.list) }).catch(()=>{})
-            if(found.currency && found.currency!=='USD'){
-        fetch(`https://api.exchangerate-api.com/v4/latest/USD`)
-          .then(r=>r.json()).then(d=>{ if(d.rates?.[found.currency]) setRate({from:'USD',to:found.currency,rate:d.rates[found.currency]}) }).catch(()=>{})
-      }
+            fetch(`https://api.exchangerate-api.com/v4/latest/${found.currency||'USD'}`)
+        .then(r=>r.json()).then(d=>{
+          const to = found.currency==='USD'?'EUR':'USD'
+          if(d.rates?.[to]) setRate({from:found.currency,to,rate:d.rates[to]})
+        }).catch(()=>{})
       }
     } catch(e){ console.error(e) }
     finally{ setLoadingTrip(false) }
@@ -434,13 +435,16 @@ export default function TripLayout({ children, params }: { children: React.React
                 </div>
                 {forecast.length>1&&<div style={{fontSize:11,color:'var(--text-light)',marginTop:4,display:'flex',gap:14,flexWrap:'wrap'}}>
                   {forecast.slice(1).map((f:any,i:number)=>{
-                    const dia = new Date(f.dt*1000).toLocaleDateString('es-CL',{weekday:'long'})
+                    const date = new Date(f.dt*1000)
+                    const today = new Date()
+                    const diffDays = Math.round((date.setHours(0,0,0,0) - today.setHours(0,0,0,0))/(1000*60*60*24))
+                    const dia = diffDays===1?'Mañana':new Date(f.dt*1000).toLocaleDateString('es-CL',{weekday:'long'})
                     return <span key={i} style={{display:'flex',alignItems:'center',gap:3}}><span style={{textTransform:'capitalize'}}>{dia}</span> <strong style={{color:'var(--text-mid)'}}>{Math.round(f.main.temp)}°</strong> {wIcon(f.weather[0].id)}</span>
                   })}
                 </div>}
                 <div style={{fontSize:13,color:'var(--text-mid)',marginTop:5}}>
   {trip.start_date} → {trip.end_date} · {fmt(trip.budget,trip.currency)}
-  {rate&&trip.budget>0&&<span style={{marginLeft:8,fontSize:11,color:'var(--text-light)',background:'var(--bg-cream-dark)',padding:'2px 8px',borderRadius:20}}>≈ {fmt(trip.budget*rate.rate,trip.currency)} {trip.currency}</span>}
+  {rate&&trip.budget>0&&<span style={{marginLeft:8,fontSize:11,color:'var(--text-light)',background:'var(--bg-cream-dark)',padding:'2px 8px',borderRadius:20}}>≈ {fmt(trip.budget*rate.rate,rate.to)} {rate.to}</span>}
 </div>
               </div>
               <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>

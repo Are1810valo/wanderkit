@@ -412,7 +412,7 @@ function TabItinerary({ trip, items, add, upd, del, isReader }: any) {
             <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14,paddingBottom:10,borderBottom:'1px solid var(--border)'}}>
               <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:20,fontWeight:400,color:'var(--navy)'}}>Día {day}</div>
               <div style={{fontSize:12,color:'var(--text-light)'}}>{acts.length} actividad{acts.length!==1?'es':''}</div>
-              {!isReader&&<div style={{fontSize:10,color:'var(--text-light)',marginLeft:'auto'}}>⠿ arrastra para reordenar</div>}
+              {!isReader&&<div style={{fontSize:10,color:'var(--text-light)',marginLeft:'auto',padding:'4px 8px',background:'var(--bg-cream-dark)',borderRadius:6}}>⠿ Mantén y arrastra para reordenar</div>}
             </div>
             <DndContext collisionDetection={closestCenter} onDragEnd={(e)=>!isReader&&handleDragEnd(e,day)}>
               <SortableContext items={ids} strategy={verticalListSortingStrategy}>
@@ -632,29 +632,66 @@ function TabPlaces({ trip, items, add, upd, del, isReader }: any) {
 }
 
 function PlaceForm({ place, onSave }: any) {
-  const [f,setF] = useState({name:place?.name||'',type:place?.type||'Atracción',note:place?.note||'',rating:place?.rating||0,visited:place?.visited||0,lat:place?.lat||'',lng:place?.lng||'',searchQuery:''})
+  const [f,setF] = useState({name:place?.name||'',type:place?.type||'Atracción',note:place?.note||'',rating:place?.rating||0,visited:place?.visited||0,lat:place?.lat||'',lng:place?.lng||''})
   const [saving,setSaving] = useState(false)
   const [error,setError] = useState('')
+  const [query,setQuery] = useState('')
+  const [suggestions,setSuggestions] = useState<any[]>([])
+  const [searching,setSearching] = useState(false)
   const s=(k:string,v:any)=>setF(p=>({...p,[k]:v}))
   const hk=(e:React.KeyboardEvent)=>{if(e.key==='Enter')e.preventDefault()}
+
+  useEffect(()=>{
+    if(query.length<3){setSuggestions([]);return}
+    const t=setTimeout(()=>{
+      setSearching(true)
+      fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`,{headers:{'Accept-Language':'es','User-Agent':'WanderKit/1.0'}})
+        .then(r=>r.json()).then(d=>{setSuggestions(d||[]);setSearching(false)}).catch(()=>setSearching(false))
+    },400)
+    return()=>clearTimeout(t)
+  },[query])
+
+  const selectPlace=(p:any)=>{
+    const name=(p.address?.tourism||p.address?.amenity||p.address?.building||p.name||query).slice(0,60)
+    s('name',name); s('lat',parseFloat(p.lat)); s('lng',parseFloat(p.lon))
+    setQuery(p.display_name.split(',').slice(0,2).join(','))
+    setSuggestions([])
+  }
+
   const handleSave=async()=>{ if(!f.name.trim()){setError('El nombre es requerido');return} setSaving(true);setError(''); try{await onSave({...f,lat:f.lat?parseFloat(String(f.lat)):null,lng:f.lng?parseFloat(String(f.lng)):null})}catch(e){setError('Error al guardar.');setSaving(false)} }
+
   return (
     <div>
       <ErrMsg msg={error} />
-      <FG label="Nombre"><input className="form-input" value={f.name} onChange={e=>s('name',e.target.value)} onKeyDown={hk} autoFocus /></FG>
-      <FG label="Tipo"><input className="form-input" value={f.type} onChange={e=>s('type',e.target.value)} onKeyDown={hk} placeholder="Monumento, Playa, Restaurante..." /></FG>
-      <FG label="Buscar lugar">
+      <div style={{position:'relative',marginBottom:14}}>
+        <label style={{display:'block',fontSize:10,fontWeight:700,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--text-mid)',marginBottom:6}}>Buscar lugar</label>
         <div style={{display:'flex',gap:8}}>
-          <input className="form-input" value={f.searchQuery} onChange={e=>s('searchQuery',e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();window.open(`https://www.openstreetmap.org/search?query=${encodeURIComponent(f.searchQuery)}`,'_blank')}}} placeholder="Ej: Torre Eiffel, París..." />
-          <button type="button" onClick={()=>window.open(`https://www.openstreetmap.org/search?query=${encodeURIComponent(f.searchQuery)}`,'_blank')} style={{padding:'0 14px',background:'#4a7fa5',color:'white',border:'none',borderRadius:10,cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'DM Sans,sans-serif',whiteSpace:'nowrap'}}>🔍</button>
+          <input className="form-input" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={hk} placeholder="Ej: Torre Eiffel, Playa Blanca..." style={{flex:1}} />
+          {searching&&<div style={{display:'flex',alignItems:'center',padding:'0 12px',fontSize:12,color:'var(--text-light)'}}>⏳</div>}
         </div>
-      </FG>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-        <FG label="Latitud (opcional)"><input className="form-input" type="number" step="any" value={f.lat} onChange={e=>s('lat',e.target.value)} placeholder="-22.9519" /></FG>
-        <FG label="Longitud (opcional)"><input className="form-input" type="number" step="any" value={f.lng} onChange={e=>s('lng',e.target.value)} placeholder="-43.2105" /></FG>
+        {suggestions.length>0&&(
+          <div style={{position:'absolute',top:'100%',left:0,right:0,background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:10,zIndex:100,overflow:'hidden',boxShadow:'var(--shadow-hover)',maxHeight:200,overflowY:'auto'}}>
+            {suggestions.map((p:any,i:number)=>(
+              <div key={i} onClick={()=>selectPlace(p)} style={{padding:'10px 14px',cursor:'pointer',fontSize:12,color:'var(--text)',borderBottom:'1px solid var(--border)'}}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--bg-cream)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <div style={{fontWeight:600}}>{p.display_name.split(',').slice(0,2).join(',')}</div>
+                <div style={{fontSize:11,color:'var(--text-light)',marginTop:2}}>{p.display_name.split(',').slice(2,4).join(',')}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      {f.lat&&f.lng&&<div style={{marginBottom:12,borderRadius:10,overflow:'hidden',height:140,border:'1px solid var(--border)'}}><iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(String(f.lng))-0.01},${parseFloat(String(f.lat))-0.01},${parseFloat(String(f.lng))+0.01},${parseFloat(String(f.lat))+0.01}&layer=mapnik&marker=${f.lat},${f.lng}`} style={{width:'100%',height:'100%',border:'none'}} loading="lazy" /></div>}
-      <div style={{padding:'8px 12px',background:'rgba(74,127,165,0.06)',border:'1px solid rgba(74,127,165,0.15)',borderRadius:10,fontSize:12,color:'var(--text-mid)',marginBottom:12}}>💡 Busca → abre en mapa → click derecho → copia coordenadas y pégalas arriba.</div>
+      <FG label="Nombre del lugar"><input className="form-input" value={f.name} onChange={e=>s('name',e.target.value)} onKeyDown={hk} placeholder="Se llena automático al buscar" /></FG>
+      <FG label="Tipo"><input className="form-input" value={f.type} onChange={e=>s('type',e.target.value)} onKeyDown={hk} placeholder="Monumento, Playa, Restaurante..." /></FG>
+      {f.lat&&f.lng&&(
+        <div style={{marginBottom:12}}>
+          <div style={{borderRadius:10,overflow:'hidden',height:140,border:'1px solid var(--border)',marginBottom:8}}>
+            <iframe src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(String(f.lng))-0.01},${parseFloat(String(f.lat))-0.01},${parseFloat(String(f.lng))+0.01},${parseFloat(String(f.lat))+0.01}&layer=mapnik&marker=${f.lat},${f.lng}`} style={{width:'100%',height:'100%',border:'none'}} loading="lazy" />
+          </div>
+          <a href={`https://maps.google.com/?q=${f.lat},${f.lng}`} target="_blank" rel="noreferrer" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,color:'#4a7fa5',fontWeight:600,textDecoration:'none',padding:'6px 12px',border:'1px solid rgba(74,127,165,0.3)',borderRadius:8,background:'rgba(74,127,165,0.06)'}}>📍 Abrir en Google Maps / GPS</a>
+        </div>
+      )}
       <FG label="Nota personal"><textarea className="form-input" rows={2} value={f.note} onChange={e=>s('note',e.target.value)} /></FG>
       <FG label="Calificación"><div style={{display:'flex',gap:10}}>{[1,2,3,4,5].map(n=><span key={n} style={{fontSize:26,cursor:'pointer',color:n<=f.rating?'#b87333':'var(--border)',transition:'all 0.15s'}} onClick={()=>s('rating',n)}>★</span>)}</div></FG>
       <div style={{display:'flex',justifyContent:'flex-end',gap:10,marginTop:20}}><Btn onClick={handleSave} primary loading={saving}>{place?'Guardar':'Agregar'}</Btn></div>
@@ -842,7 +879,7 @@ function TabProposals({ trip, items, add, upd, del, isReader }: any) {
           </div>
           <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
             {[['si','👍 Sí','#4a7c59'],['quizas','🤔 Quizás','#b87333'],['no','👎 No','#c45c5c']].map(([v,l,c])=>(
-              <button key={v} onClick={()=>upd('proposals',{...p,my_vote:p.my_vote===v?null:v})} style={{flex:1,minWidth:75,padding:'9px 8px',borderRadius:10,border:`1.5px solid ${p.my_vote===v?c:'var(--border)'}`,background:p.my_vote===v?`${c}14`:'var(--bg-input)',cursor:'pointer',fontSize:13,fontWeight:600,color:c,fontFamily:'DM Sans,sans-serif',transition:'all 0.2s'}}>{l}</button>
+              <button key={v} onClick={()=>upd('proposals',{...p,my_vote:p.my_vote===v?null:v,day:p.day,time:p.time,origin:p.origin,destination:p.destination,estimated:p.estimated,category:p.category})} style={{flex:1,minWidth:75,padding:'9px 8px',borderRadius:10,border:`1.5px solid ${p.my_vote===v?c:'var(--border)'}`,background:p.my_vote===v?`${c}14`:'var(--bg-input)',cursor:'pointer',fontSize:13,fontWeight:600,color:c,fontFamily:'DM Sans,sans-serif',transition:'all 0.2s'}}>{l}</button>
             ))}
           </div>
           <div style={{padding:'8px 12px',borderRadius:10,fontSize:12,fontWeight:600,background:p.my_vote==='si'?'rgba(74,124,89,0.08)':p.my_vote==='no'?'rgba(196,92,92,0.08)':'rgba(184,115,51,0.08)',color:p.my_vote==='si'?'#4a7c59':p.my_vote==='no'?'#c45c5c':'#b87333',border:`1px solid ${p.my_vote==='si'?'rgba(74,124,89,0.18)':p.my_vote==='no'?'rgba(196,92,92,0.18)':'rgba(184,115,51,0.18)'}`}}>
