@@ -15,8 +15,8 @@ export default function PublicTripPage() {
 
   useEffect(()=>{
     Promise.all([
-      fetch(`/api/trips/${tripId}/public`).then(r=>r.json()),
-      fetch(`/api/trips/${tripId}/items`).then(r=>r.json()),
+      fetch(`/api/public/${tripId}`).then(r=>r.json()),
+      fetch(`/api/public/${tripId}/items`).then(r=>r.json()),
     ]).then(([t,i])=>{ setTrip(t); setItems(i) }).catch(()=>{}).finally(()=>setLoading(false))
   },[tripId])
 
