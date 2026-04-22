@@ -21,7 +21,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Rutas completamente públicas — sin auth
-  if (pathname.includes('/public') || pathname.startsWith('/api/public/')) {
+  if (pathname.endsWith('/public') || pathname.includes('/public/') || pathname.startsWith('/api/public/')) {
     return NextResponse.next()
   }
 
