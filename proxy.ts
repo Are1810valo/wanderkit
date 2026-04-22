@@ -41,8 +41,9 @@ export function proxy(request: NextRequest) {
   }
 
   const sitePassword = process.env.SITE_PASSWORD
-const isAuth = pathname.startsWith('/api/auth') || pathname.startsWith('/login') || pathname.includes('/public') || pathname.startsWith('/api/trips/')
-if (!isAuth) {
+const isPublic = pathname.includes('/public')
+const isAuth = pathname.startsWith('/api/auth') || pathname.startsWith('/login')
+if (!isAuth && !isPublic) {
   const sessionToken = request.cookies.get('next-auth.session-token') || request.cookies.get('__Secure-next-auth.session-token')
   if (!sessionToken) {
     if (sitePassword) {
