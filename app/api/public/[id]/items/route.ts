@@ -10,12 +10,7 @@ export async function GET(req: Request, { params }: { params: Promise<{id:string
       db.execute({ sql: "SELECT * FROM expenses WHERE trip_id=? AND visibility='grupal'", args: [id] }),
       db.execute({ sql: 'SELECT * FROM places WHERE trip_id=?', args: [id] }),
     ])
-    return NextResponse.json({
-      flights: flights.rows,
-      itinerary: itinerary.rows,
-      expenses: expenses.rows,
-      places: places.rows,
-    })
+    return NextResponse.json({ flights: flights.rows, itinerary: itinerary.rows, expenses: expenses.rows, places: places.rows })
   } catch {
     return NextResponse.json({ error: 'Error' }, { status: 500 })
   }
