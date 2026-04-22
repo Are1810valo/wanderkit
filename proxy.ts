@@ -57,5 +57,5 @@ if (!isAuth) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/((?!_next/static|_next/image|favicon.ico).*)'],
+matcher: ['/((?!_next/static|_next/image|favicon.ico|trips/.*?/public).*)'],
 }
