@@ -20,11 +20,6 @@ function getRateLimit(ip: string): { ok: boolean; remaining: number } {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Rutas completamente públicas — sin auth
-  if (pathname.startsWith('/public') || pathname.startsWith('/api/public/')) {
-    return NextResponse.next()
-  }
-
   if (pathname.startsWith('/api/')) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('x-real-ip')
